@@ -1,0 +1,23 @@
+CARA PAKAI FILE INI
+===================
+Setelah menjalankan `supabase init`, akan muncul file supabase/config.toml.
+Buka file itu, lalu lakukan DUA hal:
+
+1) Cari bagian [db.seed] dan ubah baris sql_paths menjadi:
+
+   [db.seed]
+   enabled = true
+   sql_paths = ["./seed.sql", "./seed_dev_users.sql"]
+
+   (Jangan membuat [db.seed] kedua; cukup ubah baris yang sudah ada.)
+
+2) Tempel teks di bawah ini di BARIS PALING BAWAH config.toml:
+
+   [functions.send_push]
+   verify_jwt = false
+
+   [functions.purge_files]
+   verify_jwt = false
+
+Pastikan juga (biasanya sudah default) di bagian [auth]:
+   enable_anonymous_sign_ins = false

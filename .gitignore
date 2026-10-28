@@ -1,0 +1,28 @@
+# ---- Flutter / Dart ----
+.dart_tool/
+.packages
+build/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# ---- RAHASIA: JANGAN PERNAH DI-COMMIT ----
+app/env/*.json
+!app/env/*.example.json
+*.jks
+*.keystore
+key.properties
+google-services.json
+.env
+.env.*
+
+# ---- Supabase lokal ----
+supabase/.branches/
+supabase/.temp/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db

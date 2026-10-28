@@ -1,0 +1,500 @@
+================================================================================
+DESAIN TEKNIS BACKEND WTS (Want to Sell, Want to Share)
+Skema DB revisi | Matriks RLS | RPC | Edge Function | Cron | CI/CD
+Stack: Supabase (Postgres + Auth + Storage + Realtime + Edge Functions) + Flutter
+================================================================================
+
+FILE YANG MENYERTAI (folder wts-backend/)
+ supabase/migrations/0001_schema.sql     tipe enum, tabel, indeks
+ supabase/migrations/0002_functions.sql  helper, trigger, RPC, view publik
+ supabase/migrations/0003_rls.sql        GRANT, RLS, storage, realtime
+ supabase/migrations/0004_cron.sql       job pg_cron + pemicu push
+ supabase/seed.sql                       tag, prodi (CONTOH), titik temu, rate limit
+ supabase/tests/rls.test.sql             tes pgTAP awal
+ supabase/functions/send_push|purge_files  Edge Function
+ supabase/config.toml                    potongan konfigurasi fungsi
+ .github/workflows/*.yml                 ci, deploy-backend, release-app, ops
+
+DAFTAR ISI
+ 1. Perubahan dari ERD sebelumnya
+ 2. ERD revisi (teks)
+ 3. Keputusan desain kunci
+ 4. Matriks RLS per tabel
+ 5. Katalog RPC (dipanggil klien)
+ 6. Katalog Edge Function
+ 7. Katalog job cron
+ 8. Spesifikasi CI/CD
+ 9. Urutan penerapan (setup awal)
+10. Hal yang WAJIB diverifikasi sebelum produksi
+11. Celah yang masih terbuka / backlog
+
+
+================================================================================
+1. PERUBAHAN DARI ERD SEBELUMNYA
+================================================================================
+ ERD lama                        -> Revisi
+ ------------------------------- ----------------------------------------------
+ users.password_hash             -> dihapus; login OTP/Google via Supabase Auth,
+                                    profiles.id = auth.users.id
+ users INT / DATETIME            -> uuid / timestamptz
+ users.role enum(user,admin)     -> user, moderator, admin + status akun
+                                    (active/suspended/banned), last_login_at, dll
+ posts.user_id NULL jika anonim  -> author_id NOT NULL; anonim hanya flag
+                                    is_anonymous, identitas disembunyikan VIEW
+ posts.topic varchar             -> tabel tags + post_tags (1-2 tag, dikelola admin)
+ comments (minim)                -> + parent_id, depth, status, vote komentar
+ conversations.listing_id NULL   -> dipisah: conversations (DM) dan market_chats
+                                    (status transaksi COD, harga sepakat, retensi)
+ messages (teks saja)            -> + type, meta jsonb, reply_to, read_at, delete_at
+ (tidak ada)                     -> offers (tawar-menawar terstruktur)
+ reports (post/listing saja)     -> polimorfik: post/comment/product/user/message
+                                    + snapshot bukti + alasan enum
+ listings                        -> products (+ rent_unit, deposit, defect_note,
+                                    status booked/expired, extension_count, dll)
+ *_images.image_url              -> path storage + sort_order + batas jumlah
+ (tidak ada)                     -> tags, prodi, meeting_points, saved_*, blocks,
+                                    ratings, notifications, device_tokens,
+                                    user_strikes, appeals, banned_emails,
+                                    file_delete_queue, audit_logs, app_config,
+                                    rate_limits
+
+
+================================================================================
+2. ERD REVISI (TEKS)
+================================================================================
+ auth.users 1---1 profiles >---1 prodi
+
+ profiles 1---N posts 1---N comments (self: parent_id, depth maks 2)
+ posts    1---N post_tags N---1 tags(scope=timeline)
+ posts    1---N post_images
+ posts    1---N post_votes   (PK post_id,user_id)
+ comments 1---N comment_votes
+ profiles 1---N saved_posts / saved_products
+
+ profiles 1---N products N---1 meeting_points
+ products 1---N product_tags N---1 tags(scope=product)
+ products 1---N product_images
+ products 1---N market_chats (UNIQUE product_id,buyer_id)
+ market_chats 1---N offers
+ market_chats 1---N messages
+ market_chats 1---N ratings (market_chat_id boleh NULL setelah chat dihapus)
+
+ profiles N---N profiles via conversations (user_a < user_b, UNIQUE)
+ conversations 1---N messages        (messages: tepat satu dari
+                                      dm_conversation_id / market_chat_id)
+
+ profiles 1---N blocks (blocker -> blocked)
+ reports (target_type,target_id polimorfik) -> user_strikes, appeals
+ profiles 1---N notifications, device_tokens
+ Infrastruktur: banned_emails, file_delete_queue, audit_logs, app_config,
+                rate_limits
+
+Status penting
+ posts.status          : active, closed, expired, hidden
+ products.status       : available, booked, sold, expired, hidden, deleted
+ market_chats.status   : negotiating, agreed, on_the_way, arrived, sold,
+                         cancelled, closed
+ profiles.status       : active, suspended, banned
+ offers.status         : pending, accepted, rejected, countered, expired
+
+Constraint kunci yang dipaksa DB
+ - Domain email @nusaputra.ac.id (trigger pada auth.users) + cek banned_emails
+ - username ^[a-z0-9_]{3,20}$ unik
+ - Tag maks 2, gambar postingan maks 5, gambar produk maks 10 (trigger)
+ - Satu vote per user per target (PK komposit); tidak bisa vote konten sendiri
+ - Satu kesepakatan aktif per produk (UNIQUE partial index market_chats_one_deal)
+ - Satu tawaran pending per chat (UNIQUE partial index offers_one_pending)
+ - Jual/sewa: rent_unit wajib jika sewa; defect_note wajib jika second
+ - Kedalaman komentar maks 2; harga > 0 dan <= Rp100.000.000
+ - hard_delete_at = expires_at + 15 hari (default 30 + 15 = 45 hari)
+
+
+================================================================================
+3. KEPUTUSAN DESAIN KUNCI (menutup celah analisis sebelumnya)
+================================================================================
+ K1. Tabel dasar privat, konten dibaca lewat VIEW.
+     RLS tidak bisa menyembunyikan KOLOM, sehingga posts/comments/profiles tidak
+     boleh dibaca langsung oleh klien. Klien membaca posts_public,
+     comments_public, profiles_public (view berjalan sebagai owner, author_id
+     diganti NULL bila anonim). Ini menjamin anonimitas walau klien memodifikasi
+     query.
+ K2. Anonim tidak bisa bocor lewat gambar.
+     Nama file gambar postingan/produk = UUID acak TANPA user id. Kepemilikan
+     dicatat di storage.objects.owner_id dan diverifikasi trigger saat
+     post_images/product_images dibuat.
+ K3. Alias komentar anonim.
+     Komentar tidak anonim (sesuai brief). Hanya pemilik postingan anonim yang
+     berkomentar di postingannya sendiri tampil sebagai "Penulis (Anonim)"
+     (kolom is_anonymous_op); author_id-nya disembunyikan.
+ K4. Perubahan bernilai bisnis lewat RPC security definer (atomik + validasi).
+     Klien TIDAK punya hak INSERT/UPDATE langsung ke: posts (insert),
+     products (insert/status), market_chats, offers, conversations,
+     notifications, user_strikes. Mencegah status transaksi dimanipulasi.
+ K5. Guard berlapis: GRANT kolom (UPDATE hanya kolom tertentu) + trigger guard
+     (transisi status, jendela edit 24 jam/5 menit) + RLS.
+ K6. Konteks sistem: is_internal() = auth.uid() null (cron/service) ATAU flag
+     wts.internal (diset RPC) ATAU pg_trigger_depth() > 1. Guard dilewati di
+     konteks ini.
+ K7. Penghapusan file lewat ANTRIAN. Menghapus row storage.objects lewat SQL
+     tidak menghapus file fisik. Trigger memasukkan path ke file_delete_queue,
+     Edge Function purge_files menghapus via Storage API (retry maks 5x).
+ K8. Hapus akun = RPC delete_my_account (hapus auth.users, cascade semua data
+     + antrean file); tidak perlu Edge Function. Akun suspended/banned tidak
+     boleh menghapus diri (cegah kabur dari sanksi). Akun banned tidak ikut
+     dihapus job 6 bulan, dan hash emailnya ada di banned_emails.
+ K9. Rate limit di DB, konfigurasi di app_config.rate_limits (ubah tanpa rilis app).
+ K10. Staf TIDAK dapat membaca isi chat. Bukti laporan = snapshot 20 pesan
+      terakhir yang disimpan pada reports.snapshot (dihapus 30 hari setelah
+      ditangani). Identitas posting anonim hanya via RPC admin_reveal_author
+      (admin) dan tercatat di audit_logs.
+ K11. Produk "sewa" memakai status sold di MVP (label UI "Disewa"). Fitur
+      "sewakan lagi" (relist) masuk backlog.
+ K12. Produk yang dihapus penjual = soft delete 3 hari (agar chat berjalan bisa
+      ditutup rapi), lalu hard delete. Postingan linimasa yang dihapus penjual
+      langsung hard delete (sesuai brief).
+ K13. Kesepakatan menggantung > 14 hari tanpa aktivitas dibatalkan otomatis
+      (produk kembali tersedia) supaya produk tidak "dipesan" selamanya.
+      (Aturan tambahan; ubah di job_cleanup_chats bila tidak diinginkan.)
+
+
+================================================================================
+4. MATRIKS RLS PER TABEL
+================================================================================
+ Peran: A = pengguna login & akun aktif | O = pemilik baris | M = anggota chat
+        S = staf (moderator/admin) | AD = admin | - = ditolak
+ "RPC" = tidak ada policy tulis untuk klien; tulis hanya lewat fungsi RPC.
+ Anon (belum login) ditolak di semua tabel & view (hanya boleh memanggil ping()).
+
+ Tabel / View        SELECT                INSERT          UPDATE            DELETE
+ ------------------- --------------------- --------------- ----------------- ----------
+ prodi, tags,
+  meeting_points     A (semua)             AD              AD                AD
+ app_config          A (rate_limits: AD)   AD              AD                AD
+ profiles            O, S                  O (role=user,   O (kolom: username,  -
+                                           status=active)  prodi_id, bio,     (RPC
+                                                           avatar_path,       delete_
+                                                           dm_privacy,        my_account)
+                                                           notif_prefs)
+ profiles_public     A (selain banned)     -               -                 -
+ posts               O, S                  RPC create_post O (caption <=24 jam,  O (hapus
+                                                           status closed/      langsung)
+                                                           active/restore,
+                                                           expires_at)
+ posts_public        A (active/closed,     -               -                 -
+                     belum expired, bukan
+                     blokir 2 arah; author
+                     NULL bila anonim)
+ post_tags,
+  post_images        O, S (via posts)      RPC             -                 cascade
+ comments            O, S                  O (post aktif,  O (body <=5 menit) RPC delete_
+                                           tidak diblokir)                    comment
+ comments_public     A (active/deleted,    -               -                 -
+                     post terlihat,
+                     bukan blokir)
+ post_votes          O                     O (post terlihat; O (ganti arah)  O
+                                           bukan milik
+                                           sendiri)
+ comment_votes       O                     O (komentar     O                 O
+                                           terlihat)
+ saved_posts         O                     O (post terlihat) -               O
+ saved_products      O                     O (produk       -                 O
+                                           terlihat)
+ products            O, S, A (available/   RPC             O (kolom: judul,  RPC delete_
+                     booked belum expired;                 deskripsi, harga*, product
+                     sold <=3 hari; bukan                  rent_unit,
+                     blokir)                               deposit, kondisi,
+                                                           defect_note,
+                                                           negotiable,
+                                                           titik temu, prodi)
+                                                           *harga terkunci
+                                                           saat booked
+ product_tags        A (via produk)        RPC             -                 cascade
+ product_images      A (via produk)        O (penjual;     -                 O
+                                           path divalidasi)
+ conversations (DM)  M                     RPC start_dm    RPC accept_dm     -
+ market_chats        M                     RPC open_       RPC (offer,       -
+                                           market_chat     progress, sold,
+                                                           cancel)
+ offers              M                     RPC send_offer  RPC respond_offer -
+ messages            M (DM/market)         M (type: text,  -                 sender, <=15
+                                           image, location,                  menit, non-
+                                           contact, link;                    sistem/offer
+                                           can_send_*)
+                                           offer/system: RPC
+ ratings             rater/ratee           RPC rate_deal   -                 -
+ blocks              O (blocker)           O               -                 O
+ reports             pelapor, S            A (1x per       RPC moderate_     -
+                                           objek; snapshot action
+                                           otomatis)
+ user_strikes        user bersangkutan, S  RPC             -                 -
+ appeals             user, S               O               S (status)        -
+ notifications       O                     RPC/trigger     O (is_read saja)  O
+ device_tokens       O                     O               O                 O
+ audit_logs          AD                    RPC/trigger     -                 -
+ banned_emails,
+  file_delete_queue,
+  rate_limits        - (tanpa policy;      - (service_role / security definer saja)
+                     hanya service_role)
+
+ STORAGE (storage.objects)
+ Bucket           Akses baca                Akses tulis / hapus
+ ---------------- ------------------------- -----------------------------------
+ avatars (publik) publik                    O pada folder {uid}/ ; maks 256 KB
+ post-images      A (signed URL)            A aktif; nama ^uuid.(webp|jpg|png)$;
+                                            hapus hanya owner_id; maks 1 MB
+ product-images   A (signed URL)            sama dengan post-images
+ chat-images      M chat (path {dm|market}/ M chat pada folder {chat}/{uid}/
+                  {chat_id}/{uid}/file)     ; maks 1 MB
+ Semua bucket: hanya image/jpeg, image/png, image/webp (GIF/video ditolak).
+
+ REALTIME: tabel messages, market_chats, notifications dipublikasikan; RLS
+ tetap berlaku sehingga klien hanya menerima baris yang boleh dibacanya.
+
+
+================================================================================
+5. KATALOG RPC (supabase.rpc)
+================================================================================
+ Fungsi                          Pemanggil  Fungsi singkat / error utama
+ ------------------------------- ---------- ------------------------------------
+ touch_last_login()              A          update last_login_at (maks 1x/jam)
+ delete_my_account()             A aktif    hapus akun + semua data
+ create_post(caption, tag_ids,   A aktif    atomik: post+tag+gambar; rate limit;
+  images, anonymous, days,                  days IN (1,3,7,14,30); error:
+  extra)                                    tags_required, invalid_tag,
+                                            too_many_images, rate_limit_exceeded
+ delete_comment(id)              O          soft delete bila punya balasan
+ create_product(...)             A aktif    maks 20 produk aktif; 1-10 gambar
+ extend_product(id)              penjual    +30 hari, maks 3x (juga memulihkan
+                                            expired dalam masa 15 hari)
+ delete_product(id)              penjual    soft delete 3 hari + tutup chat
+ start_dm(user)                  A aktif    cek blokir & privasi; status request
+ accept_dm(conv)                 penerima   ubah ke accepted
+ mark_read(kind, chat)           M          tandai pesan dibaca
+ open_market_chat(product)       A aktif    buat/buka chat pembeli+produk
+ send_offer(chat, price)         M          1 tawaran pending; produk harus
+                                            available
+ respond_offer(offer, action,    lawan      accept | reject | counter; accept
+  counter)                      pengirim    mengunci produk -> booked (error
+                                            product_booked bila sudah dipesan)
+ set_chat_progress(chat, step)   M          departed | arrived (pesan sistem)
+ mark_sold(product, chat?)       penjual    produk sold; chat terpilih
+                                            sold (+7 hari); chat lain closed
+                                            (+3 hari) + pesan "Produk ini sudah
+                                            terjual" ke semua chat produk itu
+ cancel_market_chat(chat, why)   M          batal; produk booked -> available
+ rate_deal(chat, stars, comment) M          setelah sold, 1x per pihak
+ moderate_action(report, action, S          dismiss|hide|delete|warn|suspend_3|
+  note)                                     suspend_7|suspend_30|ban (3 terakhir
+                                            admin saja); audit log otomatis
+ admin_reveal_author(post)       AD         buka identitas posting anonim (dicatat)
+ ping()                          anon       uji hidup (keepalive)
+
+ Kode error umum (kirim ke UI sebagai pesan ramah): account_inactive,
+ rate_limit_exceeded, forbidden, invalid_state, product_unavailable,
+ product_booked, blocked, dm_disabled, email_domain_not_allowed, email_banned.
+
+
+================================================================================
+6. KATALOG EDGE FUNCTION
+================================================================================
+ Autentikasi semua fungsi internal: header x-wts-secret = vault
+ 'edge_shared_secret' (verify_jwt=false). Jangan memanggil dari klien.
+
+ 6.1 send_push  [kode ada]
+   Pemicu : trigger DB notifications INSERT -> pg_net -> POST /send_push
+   Input  : { notification_id: uuid }
+   Proses : baca notifikasi (lewati bila sudah pushed_at), cek notif_prefs
+            pengguna & status akun, ambil device_tokens, kirim FCM HTTP v1
+            (judul/isi generik, tanpa isi pesan chat), hapus token
+            UNREGISTERED/INVALID, set pushed_at.
+   Output : { sent: n } | { skipped: ... }
+   Secrets: EDGE_SHARED_SECRET, FCM_SERVICE_ACCOUNT (JSON), + SUPABASE_URL &
+            SERVICE_ROLE_KEY (otomatis tersedia).
+   Error  : kegagalan FCM tidak menggagalkan transaksi utama (async). Jika
+            gagal total, pushed_at tetap NULL -> dapat dijadwalkan ulang.
+   Batas  : free tier 500 ribu invokasi/bulan. Throttle push chat sudah ada di
+            trigger (maks 1 notifikasi/2 menit/chat).
+
+ 6.2 purge_files  [kode ada]
+   Pemicu : pg_cron tiap jam (menit ke-20)
+   Proses : baca file_delete_queue (attempts < 5), kelompokkan per bucket,
+            storage.remove(), hapus baris antrean; gagal -> attempts+1;
+            attempts >= 5 -> catat audit_logs 'purge_failed' lalu buang.
+   Output : { deleted, failed, dropped }
+   Idempoten: aman dijalankan ulang.
+
+ 6.3 sweep_orphans  [spesifikasi; belum ada kode]
+   Pemicu : pg_cron mingguan (Minggu 04:00 WIB)
+   Tujuan : hapus file yatim akibat unggah gagal/postingan tak jadi dibuat.
+   Proses : daftar objek per bucket yang umurnya > 24 jam dan tidak dirujuk:
+            post-images (post_images.path), product-images (product_images.path),
+            chat-images (messages.meta->>'path'), avatars (profiles.avatar_path);
+            hapus via Storage API; batasi 500 objek per eksekusi; log jumlah.
+   Catatan: jangan hapus objek < 24 jam (pengguna mungkin masih menyusun post).
+
+ 6.4 validate_upload  [opsional, fase 2]
+   Pemicu : Database Webhook pada storage.objects INSERT
+   Tujuan : cek magic bytes (JPEG/PNG/WebP asli, bukan file lain berekstensi
+            gambar) dan batas dimensi; hapus + catat bila tidak valid.
+
+ Tidak perlu Edge Function untuk: validasi domain email (trigger DB),
+ hapus akun (RPC), laporan/moderasi (RPC), job retensi (SQL + pg_cron).
+
+
+================================================================================
+7. KATALOG JOB CRON (0004_cron.sql)
+================================================================================
+ Nama job             Jadwal (UTC)    Aksi
+ -------------------- --------------- ----------------------------------------
+ wts_expire_content   */15 menit      posts/products -> expired; tutup chat produk
+                                      yang tak tersedia; tawaran > 24 jam expired
+ wts_hard_delete      menit ke-5/jam  hapus permanen hard_delete_at <= now()
+                                      (cascade + antrean file)
+ wts_cleanup_chats    menit ke-10/jam batalkan kesepakatan menggantung 14 hari;
+                                      lepas produk booked tanpa kesepakatan;
+                                      hapus market_chats delete_at <= now();
+                                      hapus DM > 3 hari; hapus percakapan kosong
+ wts_recalc_hot       */10 menit      hitung ulang skor "hot" (7 hari terakhir)
+ wts_accounts         20:00 (03:00 WIB) akhiri suspend; peringatan 14 hari sebelum
+                                      hapus; hapus akun tidak aktif 6 bulan
+ wts_reminders        02:00 (09:00 WIB) pengingat durasi produk H-3 / postingan H-1
+ wts_housekeeping     20:30           hapus notifikasi >30 hari, rate_limits
+                                      lama, snapshot laporan >30 hari
+ wts_purge_files      menit ke-20/jam panggil Edge Function purge_files
+ wts_sweep_orphans    Minggu 21:00    panggil Edge Function sweep_orphans
+
+ Aturan retensi chat -> implementasi
+  - DM: messages.delete_at = created_at + 3 hari (trigger insert)
+  - Market, negosiasi: market_chats.delete_at = aktivitas terakhir + 3 hari
+    (diperbarui trigger tiap pesan)
+  - Market, sepakat lalu terjual: delete_at = sold_at + 7 hari (mark_sold)
+  - Market, chat lain pada produk terjual: delete_at = sold_at + 3 hari
+  - Market, batal: delete_at = cancelled_at + 3 hari
+  - Produk expired/dihapus: chat negosiasi ditutup, delete_at +3 hari
+
+
+================================================================================
+8. SPESIFIKASI CI/CD (GitHub Actions)
+================================================================================
+ 8.1 Lingkungan
+   - dev lokal : supabase start (Docker) + app Flutter dengan --dart-define
+   - staging   : project Supabase #2 (gratis, maks 2 project di free tier)
+   - production: project Supabase #1
+   - GitHub Environments: staging, production (production: Required reviewers)
+
+ 8.2 Alur cabang
+   fitur/* -> PR -> main (squash). main selalu dapat dibuild & di-deploy.
+   Rilis: tag vX.Y.Z (semver) pada main.
+
+ 8.3 Workflow
+ ci.yml (PR & push main)
+   job flutter  : pub get -> dart format (gagal bila berbeda) -> flutter analyze
+                  --fatal-infos -> flutter test -> build APK debug (kunci dummy)
+   job database : supabase start -> db reset (semua migrasi + seed dari nol) ->
+                  db lint (gagal pada error) -> supabase test db (pgTAP)
+   job functions: deno lint + deno check semua Edge Function
+   Merge diblokir bila ada job merah (Branch protection: required checks +
+   1 review).
+
+ deploy-backend.yml (push main yang mengubah supabase/**, atau manual)
+   staging    : link -> db push -> functions deploy (otomatis)
+   production : menunggu persetujuan -> db push --dry-run (tampil di log) ->
+                db push -> functions deploy
+   concurrency : satu deploy pada satu waktu.
+
+ release-app.yml (tag v*)
+   decode keystore dari secret -> flutter test -> build APK release
+   --obfuscate --split-debug-info -> unggah simbol debug (90 hari) -> GitHub
+   Release (APK + changelog otomatis). Opsional: Firebase App Distribution.
+
+ ops.yml (terjadwal)
+   keepalive harian : POST rpc/ping agar project free tier tidak di-pause
+   backup mingguan  : pg_dump schema public (via session pooler) -> enkripsi
+                      GPG AES256 -> artifact 30 hari. Untuk jangka panjang, unduh
+                      artifact berkala ke penyimpanan tim.
+
+ 8.4 Secrets (Settings > Secrets, per environment)
+   SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, SUPABASE_PROJECT_REF,
+   SUPABASE_URL, SUPABASE_ANON_KEY (anon key memang publik, tetap simpan sebagai
+   secret agar mudah diganti), BACKUP_DB_URL, BACKUP_PASSPHRASE,
+   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD,
+   ANDROID_KEY_ALIAS, (opsional) FIREBASE_APP_ID, FIREBASE_SERVICE_ACCOUNT.
+   Secrets runtime Supabase (di dashboard/CLI, BUKAN GitHub):
+   supabase secrets set EDGE_SHARED_SECRET=... FCM_SERVICE_ACCOUNT='{...}'
+   Vault database: edge_base_url, edge_shared_secret (lihat 0004_cron.sql).
+   service_role key TIDAK PERNAH masuk klien/repo/CI selain deploy.
+
+ 8.5 Kebijakan
+   - Semua perubahan skema lewat file di supabase/migrations (buat dengan
+     `supabase migration new nama`). Dilarang mengubah skema production lewat
+     Studio. Migrasi yang sudah di-merge tidak diedit; koreksi = migrasi baru.
+   - Versi aplikasi: pubspec version + tag; app_config.min_app_version untuk
+     force update.
+   - Menit gratis GitHub (repo privat ~2.000 mnt/bulan): build Flutter ~8-12
+     mnt; gunakan concurrency cancel-in-progress (sudah ada) dan cache.
+   - Backup keystore Android di tempat aman (hilang = tidak bisa update app).
+
+
+================================================================================
+9. URUTAN PENERAPAN (setup awal)
+================================================================================
+ 1. Buat 2 project Supabase (staging, production). Catat project-ref & password DB.
+ 2. Auth: aktifkan Email OTP; atur SMTP kustom (Brevo/Resend) karena SMTP bawaan
+    sangat terbatas; (opsional) Google provider dengan hd=nusaputra.ac.id;
+    matikan anonymous sign-in; set OTP expiry 600 detik.
+ 3. supabase init di repo, salin folder supabase/ dari paket ini; gabungkan
+    config.toml.
+ 4. supabase link, lalu supabase db push (0001-0004) dan jalankan seed.sql;
+    SESUAIKAN daftar prodi & titik temu.
+ 5. Buat Vault secrets (edge_base_url, edge_shared_secret) dan
+    supabase secrets set (EDGE_SHARED_SECRET, FCM_SERVICE_ACCOUNT).
+ 6. supabase functions deploy.
+ 7. Angkat akun admin pertama: setelah mendaftar lewat app, jalankan SQL manual
+    sekali: update profiles set role='admin' where username='...';
+    (satu-satunya cara promosi; klien tidak bisa mengubah role).
+ 8. Pasang secrets GitHub, aktifkan branch protection & environment production.
+ 9. Jalankan workflow ops (workflow_dispatch) untuk menguji keepalive & backup.
+
+
+================================================================================
+10. WAJIB DIVERIFIKASI SEBELUM PRODUKSI
+================================================================================
+ Paket SQL ini belum dijalankan di Supabase sungguhan oleh saya. Anggap sebagai
+ draf kuat yang perlu diuji:
+  1. `supabase db reset` + `supabase test db` lulus (CI menjalankannya). Perbaiki
+     kesalahan sintaks/nama bila ada; tambahkan tes untuk tiap RPC.
+  2. Trigger pada auth.users: pastikan diizinkan di project Anda dan pesan
+     'email_domain_not_allowed' tampil benar saat daftar. Alternatif resmi:
+     Auth Hook "Before User Created" (cek ketersediaan di plan gratis).
+  3. delete from auth.users di dalam fungsi security definer (delete_my_account,
+     job_accounts): uji bahwa cascade berjalan dan sesi pengguna tidak valid.
+  4. View security_invoker=false akan ditandai linter Supabase; itu disengaja
+     (lihat K1). Pastikan anon TIDAK punya akses (tes #7).
+  5. Kebijakan storage.objects & kolom owner_id: nama kolom dapat berbeda antar
+     versi storage; sesuaikan bila migrasi gagal.
+  6. pg_cron + pg_net + Vault tersedia di project; uji invoke_edge manual.
+  7. Kuota free tier (DB 500 MB, Storage 1 GB, egress 5 GB, Realtime ~200
+     koneksi, project pause 7 hari tanpa aktivitas) - cek halaman pricing
+     terbaru dan pantau dashboard bulanan.
+  8. Uji beban kecil: 100-200 pengguna bersamaan pada feed + chat realtime.
+  9. Tinjau hukum/kebijakan: UU PDP (persetujuan, hak hapus), pemberitahuan bahwa
+     identitas posting anonim tersimpan untuk moderasi, serta kebijakan
+     privasi di app.
+ 10. Uji penetrasi ringan: coba baca tabel posts/comments langsung, ubah role
+     sendiri, kirim pesan ke chat orang lain, unggah file bukan gambar.
+
+
+================================================================================
+11. CELAH YANG MASIH TERBUKA / BACKLOG
+================================================================================
+ - Edge Function sweep_orphans & validate_upload belum ada kode.
+ - Mekanisme resolusi banding (appeals) hanya lewat update status staf; belum
+   ada RPC yang mencabut sanksi otomatis.
+ - Strike kedaluwarsa (user_strikes.expires_at 180 hari) belum mengurangi
+   strike_count otomatis.
+ - Pencarian: full-text 'simple' + trigram; belum ada stemming Indonesia.
+ - Relist produk sewa (status disewa -> tersedia lagi) belum ada.
+ - Notifikasi milestone upvote (10/50/100) belum diimplementasi.
+ - Panel admin web (saat ini layar admin dalam app + Supabase Studio).
+ - Chat DM grup, pesan suara, dan gambar di komentar (ditunda sesuai brief).
+================================================================================

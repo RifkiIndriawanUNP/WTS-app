@@ -1,0 +1,1007 @@
+================================================================================
+ANALISIS SISTEM APLIKASI WTS (Want to Sell, Want to Share)
+Micro Social Media & Marketplace Mahasiswa Universitas Nusa Putra
+Platform: Mobile (Android prioritas) | Framework: Flutter | Versi dokumen: 1.0
+================================================================================
+
+DAFTAR ISI
+ 1. Ringkasan & Ruang Lingkup
+ 2. Asumsi & Keputusan Desain
+ 3. Aktor & Hak Akses
+ 4. Arsitektur & Tech Stack (gratis)
+ 5. Struktur Navigasi & Daftar Layar
+ 6. Spesifikasi Fitur & Flow
+    6.1 Autentikasi & Akun
+    6.2 Profil
+    6.3 Linimasa (Home)
+    6.4 Komentar
+    6.5 Marketplace
+    6.6 Chat Direct Message (DM)
+    6.7 Chat Market (transaksi COD)
+    6.8 Notifikasi
+    6.9 Pelaporan & Moderasi
+    6.10 Pencarian, Filter & Sortir
+ 7. Aturan Retensi & Job Otomatis
+ 8. Model Data (ERD teks)
+ 9. Keamanan
+10. Kebutuhan Non-Fungsional & Estimasi Kapasitas
+11. Estimasi Biaya
+12. Rencana Pengembangan (Roadmap)
+13. Risiko & Mitigasi
+14. Fitur Ditunda (Versi Berikutnya)
+
+
+================================================================================
+1. RINGKASAN & RUANG LINGKUP
+================================================================================
+WTS adalah aplikasi mobile tertutup khusus mahasiswa Nusa Putra, gabungan
+linimasa ala Reddit dan marketplace ala Facebook Marketplace, dengan transaksi
+berbasis COD (bertemu langsung di kampus).
+
+Masalah yang diselesaikan:
+- Informasi jual beli barang praktikum/kuliah dan kuesioner tenggelam di grup
+  WhatsApp.
+- Tidak ada tempat terpusat, terfilter (tag), dan terpercaya (hanya mahasiswa).
+
+Tujuan sistem:
+ T1. Sistem online khusus mahasiswa Nusa Putra (login email @nusaputra.ac.id).
+ T2. Linimasa komunitas dengan tag (kuesioner, informasi, organisasi, tugas,
+     WTB, dst).
+ T3. Marketplace barang jual/sewa berbasis COD dengan chat transaksi.
+ T4. Biaya produksi + bulan pertama < Rp150.000 (target Rp0 operasional).
+ T5. Keamanan baik & moderasi konten tersedia.
+
+Di luar lingkup versi 1: pembayaran online, video/GIF, gambar di komentar,
+versi iOS (biaya developer Apple), versi web publik.
+
+
+================================================================================
+2. ASUMSI & KEPUTUSAN DESAIN
+================================================================================
+(Poin yang di brief masih ambigu; diputuskan di sini, bisa diubah.)
+
+A1. Retensi postingan: "terhapus setelah 30 hari" = status EXPIRED (disembunyikan
+    dari publik). "45 hari terhapus permanen" = hard delete saat umur
+    postingan mencapai 45 hari (untuk durasi pendek: expires_at + 15 hari).
+    Selama masa 15 hari (grace period) pemilik bisa "Pulihkan" postingan.
+A2. Durasi postingan linimasa dipilih pemilik: 24 jam, 3 hari, 7 hari, 14 hari,
+    30 hari (default 30 hari). Pemilik bisa menghapus manual kapan saja
+    (langsung hard delete + hapus gambar).
+A3. Marketplace: durasi 30 hari tetap, bisa diperpanjang +30 hari (maks
+    perpanjangan 3x agar tidak jadi postingan abadi).
+A4. "Chat DM menghapus pesan 3 hari ke belakang" = pesan yang umurnya > 3 hari
+    dihapus otomatis (rolling).
+A5. Anonymous: identitas disembunyikan dari pengguna lain, tetapi tetap
+    tersimpan di database dan hanya bisa dilihat admin untuk penegakan aturan.
+    Hal ini wajib diberitahukan di Syarat & Ketentuan.
+A6. Navigasi (maks 5): Home, Market, Chat, Notifikasi, Profil. Tombol "Posting"
+    berupa FAB (Floating Action Button) di Home dan di Market.
+A7. Distribusi awal lewat APK langsung / Firebase App Distribution (gratis).
+    Google Play Console butuh biaya sekali bayar USD 25 (~Rp400 ribu) sehingga
+    melebihi anggaran Rp150 ribu; bisa ditunda atau urunan setelah ada traksi.
+A8. Backend: Supabase (free tier) dipilih karena menyediakan Auth, Postgres,
+    Storage, Realtime, Edge Functions, dan pg_cron dalam satu paket gratis.
+A9. Satu tag wajib, maksimal 2 tag per postingan linimasa.
+A10. Satu email = satu akun aktif.
+
+
+================================================================================
+3. AKTOR & HAK AKSES
+================================================================================
+1. Pengunjung (belum login)
+   - Hanya melihat layar Login/Onboarding. Tidak bisa melihat konten apa pun.
+2. Mahasiswa (User terverifikasi)
+   - Posting, komentar, vote, simpan, report, chat, jual/sewa, blokir, dll.
+3. Moderator (mahasiswa terpilih, opsional)
+   - Meninjau laporan, menyembunyikan konten, memberi peringatan.
+4. Admin (tim pengembang)
+   - Semua hak moderator + suspend/ban user, lihat identitas posting anonim
+     (tercatat di audit log), kelola tag, pengumuman resmi, konfigurasi.
+5. Sistem (cron/edge function)
+   - Kedaluwarsa & hapus data, kirim push notifikasi, hapus akun tidak aktif.
+
+
+================================================================================
+4. ARSITEKTUR & TECH STACK (GRATIS)
+================================================================================
+4.1 Gambaran
+
+  [Flutter App Android]
+        |  HTTPS (JWT)               |  FCM Push
+        v                            v
+  [Supabase]                    [Firebase Cloud Messaging]
+   - Auth (OTP/Google)               ^
+   - Postgres + RLS                  |
+   - Storage (gambar)          [Edge Function: kirim push]
+   - Realtime (chat)                 ^
+   - Edge Functions  <----- pg_cron + pg_net (jadwal job)
+   - pg_cron (job otomatis)
+
+4.2 Komponen & pilihan
+
+ Komponen          Pilihan                          Alasan / Catatan
+ ----------------- -------------------------------- ----------------------------
+ Frontend          Flutter (Dart)                   Sesuai syarat
+ State management  Riverpod                         Ringan, mudah diuji
+ Routing           go_router                        Deep link & guard login
+ Backend (BaaS)    Supabase Free                    Postgres, Auth, Storage,
+                                                    Realtime, Cron, Edge Func
+ Push Notification Firebase Cloud Messaging (FCM)   Gratis tanpa batas
+ Email OTP (SMTP)  Brevo free (300 email/hari) atau Wajib SMTP kustom karena SMTP
+                   Resend free                      bawaan Supabase dibatasi
+                                                    sangat rendah
+ Login alternatif  Google Sign-In (hd=nusaputra.ac.id) Gratis; domain tetap
+                                                    divalidasi di server
+ Gambar            Kompres di klien                 Hemat storage (lihat bab 10)
+ Lokasi            geolocator + buka Google Maps    Tanpa SDK peta berbayar
+                   via url_launcher (kirim lat,lng)
+ Admin panel       Layar admin di dalam app (role)  Gratis, tanpa hosting baru;
+                   + Supabase Studio                Studio untuk query manual
+ Monitoring        Sentry free / Firebase Crashlytics Pantau crash
+ Repo & CI         GitHub + GitHub Actions          Gratis (build APK otomatis)
+
+4.3 Paket Flutter yang disarankan
+ supabase_flutter, flutter_riverpod, go_router, freezed/json_serializable,
+ image_picker, flutter_image_compress, cached_network_image, photo_view,
+ firebase_core, firebase_messaging, flutter_local_notifications, geolocator,
+ url_launcher, intl (format angka), flutter_secure_storage, shimmer,
+ flutter_linkify (tautan di teks), package_info_plus, connectivity_plus.
+
+4.4 Struktur proyek Flutter (feature-first)
+ lib/
+  core/        (config, theme, router, supabase client, utils, formatters)
+  shared/      (widget umum: PostCard, ProductCard, TagChip, ReportSheet)
+  features/
+    auth/  profile/  timeline/  comments/  market/  chat/
+    notifications/  moderation/  saved/  settings/
+  (tiap feature: data/ domain/ presentation/)
+
+4.5 Catatan batasan free tier Supabase (cek ulang saat implementasi)
+- Database 500 MB, Storage 1 GB, egress 5 GB/bulan, Realtime sekitar 200
+  koneksi bersamaan, project di-pause jika tidak ada aktivitas 1 minggu
+  (aman bila app dipakai rutin; tambahkan ping GitHub Actions harian sebagai
+  pengaman).
+- Jika kapasitas tidak cukup: pindahkan gambar ke Cloudflare R2 (10 GB gratis,
+  tanpa biaya egress) atau upgrade Supabase Pro (USD 25/bulan).
+
+
+================================================================================
+5. STRUKTUR NAVIGASI & DAFTAR LAYAR
+================================================================================
+Bottom Navigation (5 tab):
+  [Home] [Market] [Chat] [Notifikasi] [Profil]
+
+Daftar layar:
+ AUTH      : Splash, Onboarding, Login, Input OTP, Setup Profil (username),
+             Syarat & Ketentuan.
+ HOME      : Feed Linimasa, Detail Postingan (+komentar), Buat/Edit Postingan,
+             Pencarian, Filter/Sortir (bottom sheet).
+ MARKET    : Feed Produk (grid), Detail Produk, Buat/Edit Produk, Pencarian,
+             Filter/Sortir, Perpanjang Durasi.
+ CHAT      : Daftar Chat (tab: Pesan | Transaksi), Ruang Chat DM, Ruang Chat
+             Market (kartu produk + status), Pilih Lokasi, Tawar Harga.
+ NOTIF     : Daftar Notifikasi.
+ PROFIL    : Profil Saya, Edit Profil, Tab (Postingan | Produk | Tersimpan),
+             Profil Pengguna Lain, Pengaturan (notifikasi, privasi DM,
+             daftar blokir, hapus akun, bantuan, aturan komunitas, versi app).
+ UMUM      : Laporkan (bottom sheet), Viewer Gambar, Layar Error/Offline,
+             Layar Akun Ditangguhkan.
+ ADMIN     : Antrean Laporan, Detail Laporan, Kelola Pengguna, Kelola Tag,
+             Audit Log (hanya role moderator/admin).
+
+
+================================================================================
+6. SPESIFIKASI FITUR & FLOW
+================================================================================
+
+--------------------------------------------------------------------------------
+6.1 AUTENTIKASI & AKUN
+--------------------------------------------------------------------------------
+Fungsi:
+- Login hanya dengan email @nusaputra.ac.id.
+- Metode: (a) Email OTP 6 digit, (b) Google Sign-In dengan hd=nusaputra.ac.id.
+- Tanpa password (lebih aman dan mudah).
+- Username unik (3-20 karakter, huruf kecil/angka/underscore, filter kata
+  terlarang), bisa diganti maksimal 1x per 30 hari.
+- Wajib menyetujui Syarat & Ketentuan + Aturan Komunitas saat daftar pertama.
+
+Flow Registrasi/Login:
+ [Buka app]
+    -> sesi valid? -- ya --> [Home]
+    -> tidak --> [Login]
+ [Login]
+    -> input email
+    -> validasi format di klien: harus berakhiran @nusaputra.ac.id
+       (gagal -> pesan "Gunakan email kampus Nusa Putra")
+    -> kirim permintaan OTP ke server
+    -> SERVER: trigger database memvalidasi domain lagi (tidak percaya klien)
+       dan cek email tidak ada di daftar banned
+    -> OTP terkirim ke email (kedaluwarsa 10 menit, maks 5 kali salah,
+       rate limit kirim ulang 60 detik)
+    -> [Input OTP] -> verifikasi
+         gagal -> tampilkan error, hitung percobaan
+         sukses -> sesi (JWT + refresh token) disimpan aman
+    -> akun baru? -- ya --> [Setup Profil: username wajib, prodi/bio/foto
+                              opsional] -> simpan -> [Home]
+                   -- tidak --> cek status akun:
+                        active    -> [Home]
+                        suspended -> [Layar Akun Ditangguhkan + tanggal berakhir]
+                        banned    -> [Layar Akun Diblokir + kontak banding]
+ Setiap login/refresh sesi -> update last_login_at (dipakai aturan 6 bulan).
+ Registrasi FCM token -> disimpan di tabel device_tokens.
+
+Flow Logout: hapus sesi lokal + hapus FCM token perangkat itu.
+
+Flow Hapus Akun Manual (Pengaturan):
+ Konfirmasi (ketik "HAPUS") -> tampilkan ringkasan data yang akan dihapus ->
+ Edge Function menghapus semua data pengguna (postingan, produk, chat,
+ gambar, profil, auth user) -> logout.
+
+Flow Akun Tidak Aktif 6 Bulan:
+ Job harian: user dengan last_login_at < now() - 6 bulan dihapus total.
+ - Peringatan: push notifikasi/email 14 hari sebelum dihapus.
+ - Akun yang di-BAN tidak dihapus (disimpan hash email di tabel banned_emails
+   agar tidak bisa daftar ulang).
+ - Daftar ulang dengan email sama setelah terhapus = akun baru (UUID baru,
+   tanpa data lama; username lama bebas dipakai lagi).
+
+--------------------------------------------------------------------------------
+6.2 PROFIL
+--------------------------------------------------------------------------------
+Data: username (wajib), foto profil (opsional), prodi (opsional, pilihan dropdown
+dari daftar prodi Nusa Putra), bio (opsional, maks 160 karakter), tanggal
+bergabung, statistik ringan (jumlah postingan, produk terjual), badge.
+
+Tab di profil sendiri:
+ - Postingan : linimasa milik sendiri (anonim tampil hanya di profil sendiri
+               dengan label "Anonim", tidak tampil di profil publik).
+ - Produk    : produk milik sendiri (aktif/terjual/kedaluwarsa).
+ - Tersimpan : postingan linimasa & produk yang disimpan (privat).
+
+Profil pengguna lain: foto, username, prodi, bio, tab Postingan & Produk
+(non-anonim, aktif), tombol [Kirim Pesan], [Blokir], [Laporkan].
+
+Fitur tambahan yang disarankan:
+ - Blokir pengguna (konten & chat disembunyikan dua arah).
+ - Pengaturan privasi DM: "Semua mahasiswa" / "Tidak ada".
+ - Badge: "Penjual Terpercaya" (>=5 transaksi terjual tanpa laporan valid),
+   "Mahasiswa Baru" dsb (opsional).
+ - Kompres foto profil ke 256x256.
+
+Flow Edit Profil:
+ [Profil] -> [Edit] -> ubah field -> validasi (username unik & filter kata)
+ -> upload foto (kompres) ke storage -> simpan -> kembali dengan snackbar.
+
+--------------------------------------------------------------------------------
+6.3 LINIMASA (HOME)
+--------------------------------------------------------------------------------
+Isi postingan:
+ - Caption (wajib, 1-2000 karakter), gambar opsional maks 5 (JPG/PNG/WebP
+   saja; GIF/video ditolak), tag (wajib 1, maks 2), toggle Anonim, durasi
+   penghapusan.
+ - Tag bawaan: Kuesioner, Informasi, Organisasi, Tugas, WTB (Want to Buy),
+   Event/Lomba, Akademik, Magang/Loker, Kehilangan/Penemuan, Diskusi, Lainnya.
+   (Daftar tag disimpan di tabel agar admin bisa menambah tanpa update app.)
+ - Field tambahan opsional saat tag Kuesioner: link kuesioner + deadline +
+   estimasi durasi pengisian -> tampil sebagai kartu khusus dengan tombol
+   "Isi Kuesioner" (membuka tautan setelah peringatan tautan eksternal).
+ - Upvote (jumlah), downvote, komentar (jumlah), simpan, bagikan (salin
+   tautan/ share sheet), report.
+ - Skor tampil = upvote - downvote (jumlah upvote tetap terlihat).
+ - Penanda: "Diedit", sisa waktu ("Hilang dalam 5 hari"), pin pengumuman
+   resmi dari admin (di atas feed).
+
+Aksi pemilik: edit caption (dalam 24 jam; tandai "diedit"; gambar/tag tidak
+bisa diubah), hapus manual, ubah durasi (perpendek/perpanjang selama aktif),
+pulihkan (selama masa 15 hari grace), tandai "Selesai" (misal WTB sudah
+dapat / kuesioner sudah cukup responden -> badge abu-abu, komentar ditutup).
+
+Flow Membuat Postingan:
+ [Home] -> tekan FAB (+) -> [Buat Postingan]
+   -> isi caption -> pilih tag (wajib) -> tambah gambar (galeri/kamera, maks 5)
+   -> klien: validasi tipe file, kompres (maks sisi 1080px, WebP/JPEG q~70,
+      target <150 KB), hapus metadata EXIF/lokasi
+   -> pilih Anonim (opsional) -> pilih durasi (default 30 hari)
+   -> [Posting]
+   -> validasi klien (caption tidak kosong, tag ada)
+   -> cek rate limit (maks 10 postingan/hari/user, jeda 30 detik)
+   -> upload gambar ke storage (folder per user_id) -> dapat path
+   -> insert row posts (author_id selalu terisi; is_anonymous = true/false;
+      expires_at = now()+durasi; hard_delete_at = expires_at+15 hari atau
+      created_at+45 hari mana yang berlaku sesuai A1)
+   -> RLS memverifikasi author_id = auth.uid()
+   -> berhasil -> kembali ke Home, postingan muncul di atas
+   -> gagal upload -> tampilkan retry; gambar yang sudah terunggah dibersihkan.
+   Draft otomatis tersimpan lokal bila app tertutup.
+
+Flow Melihat Feed:
+ [Home] -> load 20 postingan pertama (cursor pagination: created_at/score)
+   -> tampil PostCard: avatar+username (atau "Anonim"), tag, caption (maks 6
+      baris + "selengkapnya"), carousel gambar, aksi
+   -> scroll ke bawah -> load berikutnya (infinite scroll)
+   -> pull-to-refresh
+   -> filter otomatis: sembunyikan postingan expired, dihapus, disembunyikan
+      moderasi, dan dari pengguna yang diblokir.
+   -> Chip tag di atas feed untuk filter cepat (Semua, Kuesioner, ...).
+
+Flow Vote:
+ Tekan upvote -> optimistic update UI -> upsert ke votes
+ (unik user_id+target) -> trigger update skor.
+ Tekan lagi di tombol sama = batalkan vote; tekan downvote saat sudah upvote
+ = ganti arah. Rate limit untuk mencegah spam vote. Tidak bisa vote postingan
+ sendiri (disarankan).
+
+Flow Simpan: tekan ikon bookmark -> insert/delete di saved_items -> tersedia
+ di Profil > Tersimpan. Jika postingan yang disimpan sudah expired/dihapus,
+ tampilkan kartu "Postingan sudah tidak tersedia" lalu bisa dihapus dari
+ daftar.
+
+Flow Menghapus / Mengubah Durasi:
+ [Detail postingan milik sendiri] -> menu titik tiga ->
+   Hapus      : konfirmasi -> hard delete (komentar, vote, gambar ikut hilang).
+   Durasi     : pilih opsi -> update expires_at (tidak melebihi 30 hari dari
+                waktu posting awal kecuali perpanjang dengan batas).
+   Selesai    : set status closed.
+   Pulihkan   : (jika EXPIRED & belum hard delete) -> expires_at = now()+7 hari.
+
+Flow Share/Deep Link: tautan wts://post/{id} -> bila user belum login diarahkan
+ login lalu kembali ke postingan.
+
+--------------------------------------------------------------------------------
+6.4 KOMENTAR
+--------------------------------------------------------------------------------
+Fitur: teks saja (tanpa gambar), boleh berisi tautan (otomatis jadi link yang
+dapat diklik dengan dialog peringatan "Anda akan membuka tautan eksternal"),
+balasan berantai (thread) maksimal kedalaman 3 level, upvote/downvote
+komentar, report komentar, hapus komentar milik sendiri, edit (5 menit),
+mention @username (opsional), urutkan: Teratas / Terbaru / Terlama.
+
+Aturan:
+ - Panjang 1-1000 karakter.
+ - Pemilik postingan anonim yang berkomentar di postingannya sendiri tampil
+   sebagai "Penulis (Anonim)". Komentar lain dari akun yang sama tidak
+   dapat diidentifikasi.
+ - Komentar dengan skor sangat rendah (<= -5) otomatis dilipat ("Komentar
+   disembunyikan, ketuk untuk lihat").
+ - Komentar terhapus saat postingan dihapus (cascade).
+ - Rate limit: maks 5 komentar/menit, 100/hari.
+ - Penulis postingan dapat menyembunyikan komentar tertentu di postingannya
+   (opsional) dan menutup komentar.
+
+Flow Komentar:
+ [Detail Postingan] -> ketik di kolom komentar -> [Kirim]
+   -> validasi (tidak kosong, rate limit, postingan belum expired/closed)
+   -> insert comments (parent_id jika membalas) -> trigger +1 comment_count
+   -> notifikasi ke pemilik postingan / pemilik komentar yang dibalas
+      (kecuali diri sendiri; hormati blokir)
+   -> komentar tampil di thread.
+Flow vote & report komentar sama dengan postingan.
+
+--------------------------------------------------------------------------------
+6.5 MARKETPLACE
+--------------------------------------------------------------------------------
+Isi produk:
+ - Judul/caption (wajib, maks 100), deskripsi (wajib, maks 2000)
+ - Gambar: wajib minimal 1, maksimal 10 (gambar pertama jadi cover)
+ - Kategori transaksi: JUAL atau SEWA
+ - Harga (format otomatis 1.000 / 10.000; hanya angka bulat, rentang masuk
+   akal), untuk SEWA wajib pilih satuan: per hari / per minggu / per bulan /
+   per semester; opsional deposit.
+ - Kondisi: BARU atau SECOND
+ - Jika SECOND: deskripsi kekurangan produk (wajib), opsional lama pemakaian
+ - Tag produk (wajib 1, maks 2): Buku/Modul, Alat Praktikum, Jas Lab,
+   Laptop & Aksesoris, Elektronik, Alat Tulis/Gambar, Perlengkapan Kos,
+   Pakaian/Almamater, Lainnya.
+ - Tag jurusan/prodi (opsional)
+ - Opsi: harga bisa nego (ya/tidak), titik temu COD yang disarankan (Perpustakaan,
+   Kantin, Lobby Gedung, dll; daftar dikelola admin)
+ - Status produk: TERSEDIA -> DIPESAN -> TERJUAL (atau EXPIRED / DELETED)
+   (SEWA: TERSEDIA -> DISEWA -> kembali TERSEDIA)
+ - Aksi: simpan, bagikan, report, [Chat Penjual]/[Tawar]
+ - Info penjual: username, prodi, badge, jumlah terjual, bergabung sejak.
+
+Aturan:
+ - Durasi 30 hari; peringatan push H-3 sebelum kedaluwarsa dengan tombol
+   Perpanjang. Perpanjang +30 hari (maks 3x).
+ - Pemilik bisa: edit (harga/deskripsi/gambar), tandai Terjual/Disewa,
+   hapus, perpanjang, jeda/sembunyikan sementara.
+ - Produk TERJUAL tetap tampil dengan badge "TERJUAL" selama 3 hari (lalu
+   hilang dari feed), tetap bisa diakses dari profil penjual.
+ - Maks 20 produk aktif per user, 5 produk baru/hari (anti spam).
+ - Barang terlarang: narkoba, miras, rokok/vape, senjata, obat resep, soal
+   ujian/jasa joki, akun berbayar ilegal, barang curian/bajakan, konten
+   dewasa. Disebutkan di Aturan Komunitas & checkbox saat posting.
+ - Penjual tidak bisa anonim di marketplace (demi keamanan COD).
+ - Pembeli tidak bisa chat produk sendiri.
+
+Flow Memposting Produk:
+ [Market] -> FAB (+) -> [Buat Produk]
+   -> isi judul, deskripsi, pilih Jual/Sewa, harga (auto format titik),
+      kondisi (Baru/Second -> jika Second muncul kolom kekurangan),
+      tag produk, tag jurusan (opsional), foto (1-10, kompres)
+   -> centang "Saya tidak menjual barang terlarang"
+   -> [Pratinjau] -> [Terbitkan]
+   -> validasi + rate limit -> upload gambar -> insert products
+      (expires_at = now()+30 hari, hard_delete_at = expires_at+15 hari)
+   -> muncul di feed Market.
+
+Flow Melihat & Memesan:
+ [Market] -> grid produk (cover, harga, kondisi, tag, badge Jual/Sewa)
+   -> [Detail Produk] -> lihat galeri, deskripsi, kekurangan, penjual
+   -> [Chat Penjual] atau [Tawar]
+   -> sistem cari chat market (buyer+product) yang sudah ada;
+      ada -> buka; belum ada -> buat baru (lihat 6.7).
+
+Flow Perpanjang / Terjual:
+ H-3 kedaluwarsa -> push "Produkmu akan hilang 3 hari lagi" ->
+ [Perpanjang] -> expires_at += 30 hari (counter extension_count++).
+ [Tandai Terjual] -> pilih pembeli dari daftar chat yang SEPAKAT (atau
+ "terjual di luar WTS") -> status TERJUAL, sold_at = now() ->
+ trigger menjalankan alur "Produk Terjual" di 6.7.
+
+--------------------------------------------------------------------------------
+6.6 CHAT DIRECT MESSAGE (DM)
+--------------------------------------------------------------------------------
+Fitur: percakapan 1-1 seperti chat umum; teks, gambar, tautan, kirim lokasi
+(titik koordinat statis), kirim kontak WhatsApp (nomor yang diketik pengirim,
+tampil sebagai kartu "Hubungi via WhatsApp" -> membuka wa.me), status
+terkirim/dibaca, indikator mengetik (opsional), hapus pesan milik sendiri
+(untuk semua orang, dalam 15 menit), balas pesan tertentu.
+
+Aturan retensi: pesan berumur > 3 hari dihapus otomatis (rolling). Banner
+tetap di atas chat: "Pesan dihapus otomatis setelah 3 hari". Gambar chat ikut
+dihapus dari storage. Percakapan kosong tetap ada di daftar sampai tidak ada
+pesan 30 hari lalu dihapus.
+
+Aturan lain:
+ - Hanya bisa DM pengguna yang mengizinkan DM (pengaturan privasi) dan tidak
+   saling memblokir.
+ - Pengguna anonim tidak bisa di-DM (hanya dibalas via komentar).
+ - Pesan pertama ke orang yang belum pernah chat = "Permintaan Pesan" (penerima
+   Terima/Abaikan/Blokir) untuk mencegah spam.
+ - Rate limit: maks 30 pesan/menit, 20 percakapan baru/hari.
+ - Nomor WA dan lokasi dikirim atas kehendak pengirim; ada konfirmasi
+   "Bagikan nomor WhatsApp-mu?".
+ - Tautan tampil dengan peringatan eksternal.
+ - Validasi gambar maks 5 MB sebelum kompres, kompres <200 KB.
+
+Flow DM:
+ [Profil user lain] -> [Kirim Pesan] -> cek izin DM & blokir
+   -> cari/buat conversation (user_a, user_b terurut, unik)
+   -> [Ruang Chat] (subscribe Realtime ke channel percakapan)
+   -> ketik/kirim -> insert messages (type: text/image/location/contact/link)
+   -> Realtime mengirim ke lawan bicara jika sedang online;
+      jika tidak, Edge Function mengirim push FCM
+      (isi push tidak memuat isi pesan penuh -> "Pesan baru dari {username}")
+   -> penerima membuka -> update read_at -> centang dua.
+ Pesan gagal terkirim -> ikon retry, antre lokal saat offline.
+
+Flow Hapus Otomatis: job per jam menghapus messages dengan created_at <
+ now() - 3 hari (tipe DM) beserta file gambar.
+
+--------------------------------------------------------------------------------
+6.7 CHAT MARKET (TRANSAKSI COD)
+--------------------------------------------------------------------------------
+Berbeda dari DM: terikat pada satu produk, ada kartu produk di bagian atas
+(foto, judul, harga, status), ada status transaksi, dan tawar-menawar
+terstruktur.
+
+Status transaksi (per chat):
+  NEGOSIASI -> SEPAKAT -> BERANGKAT -> SAMPAI -> TERJUAL
+                  \-> BATAL (kapan saja oleh salah satu pihak sebelum TERJUAL)
+Status produk bersamaan:
+  TERSEDIA -> DIPESAN (saat ada chat SEPAKAT) -> TERJUAL
+  Jika chat SEPAKAT batal -> produk kembali TERSEDIA.
+
+Jenis pesan di chat market:
+ - Teks, gambar, tautan, lokasi, kontak WhatsApp (sama seperti DM)
+ - Kartu produk (otomatis di awal chat; ikut harga terbaru)
+ - Kartu tawaran (offer): harga tawar dengan format otomatis (1.000, 10.000,
+   hanya angka), tombol penjual: [Terima] [Tolak] [Tawar Balik]
+ - Pesan sistem/status: "Harga disepakati Rp45.000", "Pembeli berangkat",
+   "Pembeli sampai di titik temu", "Barang terjual", "Transaksi dibatalkan"
+ - Saran titik temu kampus (chips: Perpustakaan, Kantin, Lobby, dll.)
+
+Hak aksi status:
+ - Tawar: pembeli (mengajukan), penjual (balas). Bisa banyak putaran, hanya
+   satu tawaran aktif pada satu waktu. Tawaran kedaluwarsa dalam 24 jam.
+ - SEPAKAT: terjadi saat penjual menerima tawaran pembeli atau pembeli
+   menerima tawar balik penjual. Harga sepakat disimpan (agreed_price).
+   Hanya satu chat yang boleh SEPAKAT per produk jual (produk -> DIPESAN).
+ - BERANGKAT / SAMPAI: tombol bagi masing-masing pihak ("Saya berangkat",
+   "Saya sudah sampai") -> pesan sistem otomatis ke lawan bicara + push.
+ - TERJUAL: dikonfirmasi penjual setelah serah terima; pembeli menerima
+   permintaan konfirmasi (ack) opsional untuk bukti dua arah.
+ - BATAL: salah satu pihak; wajib pilih alasan singkat (opsional teks).
+ Setelah transaksi: kedua pihak dapat memberi rating 1-5 + ulasan singkat
+ (disarankan; membangun reputasi penjual).
+
+Aturan retensi chat market:
+ 1. Chat NEGOSIASI / belum sepakat: dihapus 3 hari setelah aktivitas terakhir.
+ 2. Chat yang SEPAKAT dan produk TERJUAL: dihapus 7 hari setelah terjual
+    (sold_at + 7 hari).
+ 3. Chat lain pada produk yang sama (tidak jadi beli): dihapus 3 hari
+    setelah produk terjual (sold_at + 3 hari).
+ 4. Chat BATAL: dihapus 3 hari setelah dibatalkan.
+ 5. Produk expired/dihapus penjual: chat menjadi hanya-baca dan dihapus
+    3 hari kemudian.
+ Penghapusan mencakup semua pesan + gambar + chat thread.
+ Ketentuan ini ditampilkan pada banner chat dengan hitung mundur.
+
+Produk Terjual -> pesan ke SEMUA chat produk tersebut:
+ Trigger status produk menjadi TERJUAL -> untuk setiap chat produk itu
+ (selain yang SEPAKAT): sisipkan pesan sistem "Produk ini sudah terjual",
+ ubah status chat jadi DITUTUP (input chat dinonaktifkan), set delete_at =
+ sold_at + 3 hari, kirim push ke pembeli terkait.
+
+Keamanan COD (disarankan, wajib ada tips):
+ - Banner tips: bertemu di area kampus yang ramai, siang hari, cek barang
+   sebelum bayar, jangan transfer uang muka ke orang yang belum dikenal,
+   jangan bagikan data pribadi sensitif.
+ - Fitur tombol "Laporkan penipuan" langsung dari chat.
+ - Tidak ada pembayaran di dalam app (COD murni).
+
+Flow Chat Market (lengkap):
+ [Detail Produk] -> [Chat Penjual]
+   -> cek: produk TERSEDIA/DIPESAN? bukan produk sendiri? tidak diblokir?
+   -> buat/buka market_chat (product_id + buyer_id, unik)
+   -> pesan sistem awal + kartu produk -> status NEGOSIASI
+   -> pembeli: ketik pesan / [Tawar Harga]
+         input angka -> auto format "45.000" -> kirim kartu tawaran
+   -> penjual: [Terima] -> status SEPAKAT, agreed_price tersimpan,
+                produk -> DIPESAN, pesan sistem + push
+             : [Tolak] -> pesan sistem
+             : [Tawar Balik] -> kartu tawaran baru ke pembeli
+   -> keduanya sepakat lokasi & waktu (kirim lokasi / pilih titik temu / kirim
+      kontak WA)
+   -> "Saya berangkat" -> BERANGKAT (pesan sistem)
+   -> "Saya sudah sampai" -> SAMPAI (pesan sistem)
+   -> serah terima barang & uang (COD di lokasi)
+   -> penjual tekan [Tandai Terjual] -> TERJUAL
+         -> produk status TERJUAL, sold_at = now()
+         -> pesan ke semua chat lain produk tersebut (lihat di atas)
+         -> permintaan rating ke kedua pihak
+   -> penghapusan otomatis sesuai aturan retensi.
+ Alternatif: salah satu menekan [Batal] -> BATAL -> produk kembali TERSEDIA
+ jika sebelumnya DIPESAN.
+
+Daftar Chat (tab Chat):
+ - Sub-tab "Pesan" (DM) dan "Transaksi" (chat market, dikelompokkan:
+   Sebagai Pembeli / Sebagai Penjual). Badge jumlah belum dibaca per tab
+   dan ikon status di tiap item.
+
+--------------------------------------------------------------------------------
+6.8 NOTIFIKASI
+--------------------------------------------------------------------------------
+Notifikasi in-app (tab Notifikasi) + push FCM (bisa diatur per jenis):
+ - Komentar baru di postinganmu / balasan komentarmu
+ - Upvote milestone (misal 10, 50, 100) - bukan tiap upvote agar tidak berisik
+ - Pesan DM baru, permintaan pesan
+ - Chat market: tawaran baru, tawaran diterima/ditolak, status (berangkat,
+   sampai, terjual, batal), produk terjual (chat lain)
+ - Pengingat durasi: postingan/produk akan kedaluwarsa (H-3, H-1 untuk produk;
+   H-1 untuk postingan linimasa >= 7 hari)
+ - Moderasi: konten disembunyikan, peringatan, suspend, hasil banding
+ - Akun akan dihapus karena tidak aktif (14 hari sebelumnya)
+ - Pengumuman admin
+Fitur: tandai sudah dibaca / semua dibaca, ketuk -> deep link ke konten,
+ retensi notifikasi 30 hari, pengaturan per kategori + mode senyap.
+
+Flow: event terjadi (trigger DB) -> insert notifications -> Edge Function
+ membaca device_tokens -> kirim FCM (batch) -> app menerima -> tampil lokal ->
+ ketuk -> router membuka layar terkait. Token tidak valid dibersihkan.
+
+--------------------------------------------------------------------------------
+6.9 PELAPORAN & MODERASI
+--------------------------------------------------------------------------------
+Objek yang dapat dilaporkan: postingan, komentar, produk, pengguna, pesan/
+chat (DM dan chat market).
+
+Alasan laporan: Spam/iklan berulang, SARA/ujaran kebencian, pelecehan/
+perundungan, konten dewasa, penipuan, barang terlarang, informasi palsu/
+hoaks, pelanggaran privasi (doxxing), lainnya (teks wajib).
+
+Aturan:
+ - Satu user hanya bisa melapor satu kali per objek.
+ - Auto-hide: bila >= 3 pelapor unik (atau >= 2 untuk produk dengan alasan
+   penipuan) -> konten disembunyikan sementara menunggu tinjauan (mencegah
+   penyalahgunaan: pelapor yang laporannya sering ditolak dikurangi bobotnya).
+ - Laporan chat menyimpan snapshot 20 pesan terakhir (karena pesan terhapus
+   otomatis), disimpan 30 hari untuk bukti, lalu dihapus.
+ - Snapshot konten yang dilaporkan disimpan bila konten kemudian dihapus
+   oleh pemilik (agar bukti tidak hilang).
+ - Pelapor anonim terhadap pihak terlapor.
+ - SLA target tinjauan: 24-48 jam.
+
+Tindakan moderator/admin:
+ Abaikan laporan | Sembunyikan konten | Hapus konten | Peringatan |
+ Suspend 3/7/30 hari | Ban permanen (+ blokir email via hash) |
+ Hapus dari tag/pin. Setiap tindakan tercatat di audit_logs (siapa, kapan,
+ alasan). Melihat identitas posting anonim hanya via fungsi khusus admin dan
+ tercatat di audit log.
+ Eskalasi strike: peringatan 1 -> peringatan 2 -> suspend 3 hari -> 7 hari ->
+ 30 hari -> ban permanen. Pelanggaran berat (penipuan, pelecehan seksual,
+ SARA) bisa langsung ban.
+ Banding: pengguna bisa mengajukan banding (1x) via formulir in-app; ditinjau
+ admin.
+
+Flow Laporan:
+ [Konten] -> menu titik tiga -> [Laporkan] -> bottom sheet pilih alasan
+   (+ keterangan opsional) -> kirim
+   -> insert reports (status: PENDING), cek duplikat
+   -> trigger hitung pelapor unik -> auto-hide bila ambang tercapai
+   -> notifikasi ke moderator
+   -> [Antrean Laporan] moderator membuka detail (konten, snapshot, riwayat
+      pelanggaran terlapor, jumlah laporan)
+   -> pilih tindakan -> update reports (RESOLVED/REJECTED) + audit_logs
+   -> notifikasi ke pemilik konten (alasan) dan ke pelapor ("Terima kasih,
+      laporan telah ditindaklanjuti" tanpa detail pribadi)
+   -> pemilik dapat banding bila ada tindakan.
+
+Alat bantu moderasi otomatis ringan (gratis):
+ - Daftar kata terlarang (profanity/SARA) -> konten ditandai untuk ditinjau.
+ - Pencegahan duplikat posting (hash caption) & spam tautan.
+ - Peringatan tautan yang mencurigakan (daftar pendek URL shortener).
+
+--------------------------------------------------------------------------------
+6.10 PENCARIAN, FILTER & SORTIR
+--------------------------------------------------------------------------------
+HOME (Linimasa):
+ - Search: kata kunci pada caption (+ username untuk non-anonim) memakai
+   Postgres full-text search (tsvector config 'simple') + pg_trgm untuk
+   toleransi salah ketik; riwayat pencarian lokal (bisa dihapus).
+ - Filter: tag (multi), rentang waktu (24 jam/minggu/bulan), hanya yang punya
+   gambar, belum selesai.
+ - Sortir: Terbaru (default), Terpopuler (hot ranking), Teratas (skor
+   tertinggi dalam periode), Paling banyak komentar, Segera berakhir.
+ - Rumus "Hot" sederhana: score / (jam_sejak_posting + 2)^1.5 (dihitung di
+   query/kolom terjadwal).
+
+MARKET:
+ - Search: judul, deskripsi, tag.
+ - Filter: Jual/Sewa, Baru/Second, tag produk, tag jurusan, rentang harga,
+   hanya tersedia, bisa nego.
+ - Sortir: Terbaru, Harga terendah, Harga tertinggi, Terpopuler (paling banyak
+   disimpan/dilihat).
+ - Tampilan grid 2 kolom.
+
+Flow: ketuk ikon cari -> input -> debounce 400 ms -> query dengan pagination
+ -> hasil; tombol filter membuka bottom sheet -> terapkan -> hasil dimuat
+ ulang; tampil empty state bila tidak ada hasil.
+
+
+================================================================================
+7. ATURAN RETENSI & JOB OTOMATIS
+================================================================================
+Semua dijadwalkan dengan pg_cron (di Supabase) dan memanggil Edge Function
+untuk penghapusan file storage (penghapusan lewat SQL pada tabel storage
+tidak menghapus file fisik, jadi harus lewat Storage API).
+
+ Job                     Jadwal        Aksi
+ ----------------------- ------------- -----------------------------------------
+ expire_content          tiap 15 menit posts/products status ACTIVE dan
+                                       expires_at <= now() -> EXPIRED
+ hard_delete_content     tiap jam      posts/products dengan hard_delete_at <=
+                                       now() -> hapus row (cascade komentar,
+                                       vote, saved) + antrean hapus file gambar
+ purge_storage_files     tiap jam      Edge Function menghapus file di
+                                       tabel antrean file_delete_queue
+ cleanup_dm_messages     tiap jam      hapus DM > 3 hari (+ file)
+ cleanup_market_chats    tiap jam      terapkan 5 aturan retensi chat market
+ expire_offers           tiap 15 menit tawaran > 24 jam -> EXPIRED
+ reminder_expiry         tiap hari     push pengingat H-3/H-1
+ cleanup_notifications   tiap hari     hapus notifikasi > 30 hari
+ cleanup_report_snapshot tiap hari     hapus snapshot laporan > 30 hari setelah
+                                       resolved
+ delete_inactive_users   tiap hari     hapus akun last_login_at > 6 bulan
+                                       (kecuali banned), kirim peringatan
+                                       14 hari sebelumnya
+ end_suspension          tiap jam      akun suspended yang habis masa ->
+                                       active
+ keepalive               tiap hari     ping (GitHub Actions) agar project
+                                       free tier tidak pause
+ recalc_hot_score        tiap 10 menit hitung ulang skor "hot" (opsional)
+
+Timeline kehidupan postingan (contoh default 30 hari):
+ Hari 0  : dipublikasikan
+ Hari 30 : EXPIRED (tidak tampil; pemilik masih bisa Pulihkan)
+ Hari 45 : dihapus permanen dari database + file gambar
+Timeline produk: sama; produk TERJUAL hilang dari feed 3 hari setelah terjual.
+
+
+================================================================================
+8. MODEL DATA (ERD TEKS)
+================================================================================
+(Postgres; semua tabel diaktifkan RLS. PK uuid. Waktu = timestamptz.)
+
+profiles
+ id (=auth.users.id), username (unik), email_hash, prodi_id, bio, avatar_path,
+ role (user/moderator/admin), status (active/suspended/banned), suspended_until,
+ strike_count, dm_privacy (all/none), last_login_at, created_at
+
+prodi            : id, nama, fakultas
+tags             : id, scope (timeline/product/major), name, slug, is_active
+
+posts
+ id, author_id, is_anonymous, caption, status (active/closed/expired/hidden/
+ deleted), expires_at, hard_delete_at, edited_at, upvotes, downvotes, score,
+ hot_score, comment_count, extra (jsonb: link kuesioner, deadline), created_at
+post_tags        : post_id, tag_id
+post_images      : id, post_id, path, width, height, sort_order
+
+comments
+ id, post_id, author_id, parent_id, body, depth, upvotes, downvotes, score,
+ status, created_at, edited_at
+
+votes            : id, user_id, target_type (post/comment), target_id, value
+                   (+1/-1), unique(user_id,target_type,target_id)
+saved_items      : id, user_id, target_type (post/product), target_id, created_at
+
+products
+ id, seller_id, title, description, listing_type (sell/rent), price,
+ rent_unit (day/week/month/semester), deposit, condition (new/used),
+ defect_note, negotiable, meeting_point_id, major_tag_id, status (available/
+ booked/sold/expired/hidden/deleted), sold_at, expires_at, hard_delete_at,
+ extension_count, view_count, save_count, created_at
+product_tags     : product_id, tag_id
+product_images   : id, product_id, path, sort_order
+meeting_points   : id, name, description, is_active
+
+conversations (DM)  : id, user_a, user_b (user_a<user_b), status (request/
+                      accepted), last_message_at
+market_chats        : id, product_id, buyer_id, seller_id, status (negotiating/
+                      agreed/on_the_way/arrived/sold/cancelled/closed),
+                      agreed_price, sold_at, delete_at, last_activity_at,
+                      buyer_arrived/seller_arrived flags
+messages            : id, chat_type (dm/market), chat_id, sender_id, type (text/
+                      image/location/contact/link/offer/system), body, meta
+                      (jsonb: lat,lng, phone, offer_price, offer_status),
+                      reply_to, read_at, created_at, delete_at
+ratings             : id, market_chat_id, rater_id, ratee_id, stars, comment
+
+blocks              : blocker_id, blocked_id
+reports             : id, reporter_id, target_type (post/comment/product/user/
+                      message), target_id, reason, note, snapshot (jsonb),
+                      status (pending/resolved/rejected), handled_by, action,
+                      created_at
+user_strikes        : id, user_id, report_id, action, expires_at
+appeals             : id, user_id, report_id, message, status
+notifications       : id, user_id, type, payload (jsonb), is_read, created_at
+device_tokens       : id, user_id, fcm_token, platform, updated_at
+banned_emails       : email_hash, reason, created_at
+file_delete_queue   : id, bucket, path, created_at
+audit_logs          : id, actor_id, action, target, detail, created_at
+app_config          : key, value (batas rate limit, versi minimum app, dll.)
+
+Relasi utama:
+ profiles 1-N posts, comments, products | posts 1-N comments, post_images |
+ products 1-N market_chats | market_chats 1-N messages |
+ profiles N-N profiles via conversations.
+
+Indeks penting: posts(status, created_at desc), posts(hot_score desc),
+ posts GIN(tsvector caption), products(status, created_at desc),
+ products(price), messages(chat_id, created_at), votes unique composite,
+ notifications(user_id, is_read, created_at).
+
+Storage bucket:
+ - avatars (publik baca)
+ - post-images, product-images (baca oleh user login)
+ - chat-images (privat, akses via signed URL berumur pendek, hanya anggota
+   chat)
+ Path file: {user_id}/{uuid}.webp (user hanya boleh upload ke folder sendiri,
+ via policy storage).
+
+
+================================================================================
+9. KEAMANAN
+================================================================================
+Autentikasi & akses
+ - Domain @nusaputra.ac.id divalidasi di klien DAN di server (trigger pada
+   auth.users / hook), tidak hanya di UI.
+ - OTP kedaluwarsa 10 menit, batas percobaan, rate limit pengiriman.
+ - Token JWT berumur pendek + refresh token, disimpan di secure storage.
+ - Row Level Security (RLS) pada SEMUA tabel: user hanya mengubah/menghapus data
+   miliknya; chat hanya terbaca anggota; laporan hanya moderator.
+ - Role moderator/admin disimpan di tabel yang tidak bisa diubah klien;
+   fungsi admin dijalankan di Edge Function/RPC security definer.
+ - Kunci service_role TIDAK PERNAH ada di aplikasi (hanya di Edge Function).
+ - Cek status akun (suspended/banned) di RLS/RPC agar akun ditangguhkan tidak
+   bisa menulis meski token masih valid.
+
+Privasi
+ - Identitas anonim tidak pernah dikirim ke klien (view/RPC publik tidak
+   menyertakan author_id untuk is_anonymous = true).
+ - Email pengguna tidak ditampilkan publik; hanya username.
+ - EXIF/GPS foto dihapus saat kompres.
+ - Lokasi hanya dikirim saat user menekan kirim lokasi (tidak ada pelacakan
+   latar belakang). Izin lokasi diminta saat dipakai.
+ - Hash email untuk daftar ban (bukan email asli).
+ - Push notifikasi tidak memuat isi pesan sensitif.
+ - Kepatuhan UU PDP Indonesia: kebijakan privasi, persetujuan, hak hapus data
+   (fitur Hapus Akun), minimisasi data.
+
+Perlindungan data & penyalahgunaan
+ - Validasi input di klien dan server (panjang, tipe, pola harga), constraint
+   DB (CHECK).
+ - Sanitasi teks (tidak merender HTML/skrip; hanya teks + linkify).
+ - Upload: whitelist MIME (jpeg/png/webp), batasi ukuran & jumlah, tolak GIF/
+   video; verifikasi magic bytes di Edge Function bila memungkinkan.
+ - Rate limiting per user (posting, komentar, vote, chat, laporan, OTP) via
+   fungsi DB / tabel counter + app_config.
+ - Tautan: dialog peringatan sebelum membuka, blokir skema berbahaya (hanya
+   http/https), daftar blokir domain berbahaya/shortener.
+ - Anti-spam: deteksi duplikat caption, batas tautan per komentar.
+ - Pencegahan scraping: akses hanya untuk user login; pagination terbatas.
+ - Aplikasi: obfuscate build rilis (--obfuscate --split-debug-info), certificate
+   pinning opsional, tidak menyimpan rahasia di kode, deteksi root opsional.
+ - Dependensi: update berkala, pantau advisori (GitHub Dependabot gratis).
+ - Backup: Supabase free tidak menyediakan backup harian otomatis ->
+   jadwalkan pg_dump mingguan via GitHub Actions (ke repo privat/Artifact),
+   data sensitif dienkripsi.
+ - Audit log untuk semua aksi admin dan akses identitas anonim.
+ - Force update: app_config.min_version memaksa update untuk versi rentan.
+
+Keamanan transaksi COD
+ - Tidak ada pembayaran di app (menghilangkan risiko finansial platform).
+ - Titik temu disarankan di area kampus, tips keamanan, pelaporan penipuan,
+   rating penjual, batas produk per user, verifikasi email kampus (pengurang
+   akun palsu).
+
+
+================================================================================
+10. KEBUTUHAN NON-FUNGSIONAL & ESTIMASI KAPASITAS
+================================================================================
+Non-fungsional
+ - Performa: feed pertama tampil < 2 detik pada jaringan 4G; cache gambar;
+   skeleton/shimmer loading; pagination 20 item.
+ - Ketersediaan: target 99% (batasan free tier); layar offline yang ramah dan
+   draft lokal.
+ - Kompatibilitas: Android 8.0+ (API 26+), layar kecil sampai tablet.
+ - Aksesibilitas: ukuran font dinamis, kontras, label semantik.
+ - Bahasa: Indonesia (struktur siap lokalisasi dengan intl/arb).
+ - Tema: terang/gelap.
+ - Observabilitas: Crashlytics/Sentry, log error Edge Function.
+ - Skalabilitas: arsitektur mudah dipindahkan ke tier berbayar atau storage
+   R2 tanpa ubah klien (abstraksi repository).
+
+Estimasi kapasitas (1.000 user)
+ Database teks: ratusan MB belum tercapai; 500 MB lebih dari cukup
+ (perkiraan < 100 MB untuk puluhan ribu baris per bulan karena data
+ dihapus berkala).
+
+ Storage gambar (batas free 1 GB) - perkiraan skenario:
+  Rata-rata gambar terkompres ~100 KB (1080px, WebP q70).
+  Skenario realistis awal: 40 postingan linimasa/hari x 1,5 gambar = 6 MB/hari;
+  15 produk/hari x 4 gambar = 6 MB/hari; chat gambar 50/hari = 5 MB/hari
+  (dihapus 3-7 hari).
+  Total tertahan: (6+6) MB x 45 hari = ~540 MB + chat ~35 MB = ~575 MB -> aman
+  di bawah 1 GB.
+  Skenario ramai (3x): ~1,7 GB -> melebihi gratis.
+ Mitigasi bertahap:
+  1) Kompres lebih agresif (maks 1080 px, kualitas 65, thumbnail 320 px untuk
+     feed sehingga egress turun).
+  2) Hapus file gambar saat EXPIRED (bukan menunggu hari ke-45), pemulihan
+     hanya untuk teks; aktifkan lewat konfigurasi.
+  3) Batasi total gambar per user aktif.
+  4) Pindah penyimpanan gambar ke Cloudflare R2 (10 GB gratis).
+  5) Upgrade Supabase Pro bila sudah ada pendanaan.
+
+ Egress (5 GB/bulan): thumbnail + cache klien + lazy load menjaga trafik
+  (1.000 user x ~100 tampilan gambar thumbnail/hari x 30 KB = ~3 GB/bulan).
+  Pantau dashboard; R2 menghilangkan biaya egress.
+
+ Realtime: ~200 koneksi bersamaan. Gunakan Realtime hanya saat ruang chat
+  terbuka (subscribe/unsubscribe), daftar chat memakai polling ringan/push.
+ Edge Functions: 500 ribu pemanggilan/bulan gratis (cukup).
+ FCM: gratis.
+ Email OTP: Brevo 300/hari; dengan ~1.000 user dan sesi panjang (refresh token)
+  login jarang -> cukup; Google Sign-In mengurangi beban OTP.
+
+
+================================================================================
+11. ESTIMASI BIAYA
+================================================================================
+ Item                                  Biaya
+ ------------------------------------- ----------------------------------------
+ Supabase Free                         Rp0
+ Firebase FCM / Crashlytics            Rp0
+ SMTP (Brevo/Resend free)              Rp0
+ GitHub (repo + Actions + Dependabot)  Rp0
+ Domain/hosting web                    Rp0 (tidak diperlukan; opsional halaman
+                                       Syarat & Privasi via GitHub Pages)
+ Distribusi APK (link langsung/Firebase
+ App Distribution)                     Rp0
+ Cloudflare R2 (jika dipakai)          Rp0 (butuh kartu untuk verifikasi akun)
+ ------------------------------------- ----------------------------------------
+ TOTAL bulan pertama                   Rp0 - Rp50.000 (cadangan: domain .my.id
+                                       murah bila ingin email/halaman kebijakan)
+ Opsional Google Play Console          USD 25 sekali (~Rp400 ribu) -> di luar
+                                       anggaran; tunda atau urunan.
+ Jika perlu upgrade Supabase Pro       USD 25/bulan (di atas anggaran) -> hanya
+                                       bila kapasitas benar-benar terlampaui.
+
+
+================================================================================
+12. RENCANA PENGEMBANGAN (ROADMAP)
+================================================================================
+Fase 0 - Persiapan (1 minggu)
+ - Finalisasi aturan komunitas, syarat & privasi, desain UI (Figma),
+   setup repo, Supabase project, FCM, SMTP.
+Fase 1 - Fondasi (2 minggu)
+ - Auth (OTP/Google + validasi domain), profil, skema DB + RLS, navigasi,
+   tema, upload gambar terkompres.
+Fase 2 - Linimasa (2-3 minggu)
+ - Posting, tag, anonim, durasi, vote, komentar, simpan, search/sortir,
+   report dasar.
+Fase 3 - Marketplace (2-3 minggu)
+ - Posting produk, filter/sortir, detail, status, perpanjang, simpan.
+Fase 4 - Chat (3 minggu)
+ - DM, chat market, kartu produk, tawar-menawar, status transaksi, lokasi,
+   WA, gambar, produk terjual -> broadcast, push notifikasi.
+Fase 5 - Moderasi & Job otomatis (2 minggu)
+ - Panel moderasi, auto-hide, strike, banding, semua cron, hapus akun
+   tidak aktif.
+Fase 6 - Pengujian & Rilis Terbatas (2 minggu)
+ - Uji fungsional, uji RLS (pastikan akses lintas user ditolak), uji beban
+   ringan, beta tertutup 50-100 mahasiswa, perbaikan, rilis ke kampus.
+Total estimasi: 12-14 minggu (menyesuaikan tim mahasiswa paruh waktu).
+
+Pengujian penting (checklist):
+ - Pengguna non-@nusaputra.ac.id ditolak (klien & server).
+ - Aturan retensi: simulasikan waktu untuk 30/45 hari, 3 hari, 7 hari.
+ - Postingan anonim: identitas tidak bocor melalui API/respons.
+ - RLS: user A tak bisa baca chat user B, tak bisa edit post orang lain.
+ - Race condition: dua pembeli sepakat serentak pada produk yang sama.
+ - Sinkronisasi status produk terjual -> semua chat.
+ - Upload GIF/video/ukuran besar ditolak.
+ - Format harga dengan input aneh (huruf, nol di depan, negatif).
+ - Offline/jaringan lemah, kehilangan koneksi saat upload.
+
+
+================================================================================
+13. RISIKO & MITIGASI
+================================================================================
+ Risiko                               Mitigasi
+ ------------------------------------ ------------------------------------------
+ Kuota gratis habis (storage/egress)  Kompres + thumbnail, purge gambar saat
+                                      expired, R2, pantau dashboard
+ Supabase project pause               Cron ping harian, pantau aktivitas
+ Email OTP terbatas                   SMTP kustom + Google Sign-In
+ Spam/konten melanggar                Rate limit, auto-hide, laporan, moderator
+ Penyalahgunaan anonim                Identitas tersimpan di server, audit log,
+                                      ban via hash email
+ Penipuan COD                         Tips keamanan, rating, report penipuan,
+                                      batas produk, titik temu kampus
+ Admin tunggal kewalahan              Rekrut moderator mahasiswa, aturan jelas
+ Kebocoran data / RLS salah           Review & tes RLS, jangan pakai service_role
+                                      di klien, backup terenkripsi
+ Mahasiswa lulus -> email nonaktif    Domain tetap valid sementara; kebijakan
+                                      penghapusan akun 6 bulan tidak aktif
+ Sepi pengguna (cold start)           Kampanye lewat BEM/HIMA, event peluncuran,
+                                      seed konten, hadiah kecil
+ Adopsi iOS                           Fokus Android dulu; pertimbangkan PWA
+ Ketergantungan satu vendor           Abstraksi repository, backup, skema
+                                      portabel (Postgres standar)
+
+
+================================================================================
+14. FITUR DITUNDA (VERSI BERIKUTNYA)
+================================================================================
+ - Gambar di komentar, polling pada postingan, hashtag bebas
+ - Komunitas/grup per prodi atau UKM (subforum)
+ - Verifikasi akun organisasi (centang resmi untuk BEM/HIMA/UKM)
+ - Wishlist & notifikasi kata kunci (pemberitahuan bila ada produk dicari)
+ - Peta lokasi/titik temu dalam app, jadwal COD
+ - Ulasan penjual lebih lengkap, sistem reputasi
+ - Tinjau otomatis gambar (deteksi konten dewasa) dan teks (ML)
+ - Versi iOS dan web
+ - Laporan statistik untuk admin (pengguna aktif, transaksi, konten populer)
+ - Kerja sama dengan kampus (pengumuman resmi, integrasi SSO)
+
+================================================================================
+PENUTUP
+================================================================================
+Dokumen ini dapat dijadikan dasar SRS/desain database/UI. Langkah lanjutan yang
+disarankan: (1) skema SQL + kebijakan RLS lengkap, (2) wireframe layar utama,
+(3) diagram flow/ERD visual (Mermaid/draw.io), (4) backlog sprint.
+================================================================================

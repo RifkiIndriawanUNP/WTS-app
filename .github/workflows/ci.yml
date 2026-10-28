@@ -1,0 +1,55 @@
+name: CI
+
+# Versi sederhana untuk tahap awal. Workflow lanjutan (deploy, rilis, backup)
+# ada di docs/workflows-nanti/ dan dipindahkan ke sini saat sudah dibutuhkan.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  flutter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # Lewati bila folder app/ belum dibuat
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cek folder app
+        id: chk
+        working-directory: .
+        run: |
+          if [ -f app/pubspec.yaml ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "ok=false" >> "$GITHUB_OUTPUT"; fi
+      - uses: subosito/flutter-action@v2
+        if: steps.chk.outputs.ok == 'true'
+        with:
+          channel: stable
+          cache: true
+      - if: steps.chk.outputs.ok == 'true'
+        run: flutter pub get
+      - if: steps.chk.outputs.ok == 'true'
+        run: flutter analyze
+      - if: steps.chk.outputs.ok == 'true'
+        run: flutter test
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Jalankan Supabase lokal
+        run: supabase start
+      - name: Bangun database dari nol (semua migrasi + seed)
+        run: supabase db reset
+      - name: Jalankan tes database
+        run: supabase test db

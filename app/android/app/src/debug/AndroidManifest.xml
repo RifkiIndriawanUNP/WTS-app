@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- INTERNET dibutuhkan saat pengembangan (hot reload & koneksi ke Supabase). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Hanya build DEBUG: izinkan http:// ke Supabase lokal. Build rilis tetap wajib https. -->
+    <application android:usesCleartextTraffic="true"/>
+</manifest>
