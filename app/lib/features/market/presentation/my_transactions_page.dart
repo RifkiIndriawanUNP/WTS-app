@@ -6,6 +6,7 @@ import 'package:wts/features/market/domain/market_transaction.dart';
 import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 import 'package:wts/shared/widgets/dialogs.dart';
 
@@ -75,7 +76,7 @@ class _MyTransactionsPageState extends ConsumerState<MyTransactionsPage> {
             Expanded(
               child: list.isEmpty
                   ? const EmptyState(
-                      icon: Icons.shopping_bag_outlined,
+                      icon: WtsIcons.bag,
                       title: 'Belum ada transaksi',
                       message: 'Transaksi di kategori ini akan muncul di sini.',
                     )
@@ -436,9 +437,9 @@ class _InfoBar extends StatelessWidget {
       child: Row(
         children: [
           if (deadline)
-            const Icon(Icons.schedule_rounded, size: 20, color: MC.blue)
+            const AppIcon(WtsIcons.clock, size: 20, color: MC.blue)
           else
-            const Icon(Icons.calendar_today_outlined, size: 19, color: MC.blue),
+            const AppIcon(WtsIcons.calendar, size: 19, color: MC.blue),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -448,7 +449,7 @@ class _InfoBar extends StatelessWidget {
               style: mt(size: 13.5, weight: FontWeight.w600, color: MC.text),
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, size: 20, color: MC.slate),
+          const AppIcon(WtsIcons.chevronRight, size: 20, color: MC.slate),
         ],
       ),
     );
@@ -530,7 +531,7 @@ class _Stepper extends StatelessWidget {
         width: size,
         height: size,
         decoration: const BoxDecoration(color: MC.blue, shape: BoxShape.circle),
-        child: const Icon(Icons.check_rounded, size: 15, color: Colors.white),
+        child: const AppIcon(WtsIcons.check, size: 15, color: Colors.white),
       );
     }
     if (i == stage) {
@@ -543,7 +544,7 @@ class _Stepper extends StatelessWidget {
             color: MC.blue,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check_rounded, size: 15, color: Colors.white),
+          child: const AppIcon(WtsIcons.check, size: 15, color: Colors.white),
         );
       }
       return _ring(
@@ -560,7 +561,7 @@ class _Stepper extends StatelessWidget {
       size,
       MC.blue,
       i == kTransactionStages.length - 1
-          ? const Icon(Icons.shopping_bag_outlined, size: 12, color: MC.blue)
+          ? const AppIcon(WtsIcons.bag, size: 12, color: MC.blue)
           : null,
     );
   }

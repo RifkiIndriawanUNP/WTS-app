@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:wts/core/theme/app_theme.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 const _tones = <List<Color>>[
   [Color(0xFF60A5FA), Color(0xFF2563EB)],
@@ -80,12 +81,12 @@ class ImagePlaceholder extends StatelessWidget {
   const ImagePlaceholder({
     super.key,
     required this.seed,
-    this.icon = Icons.image_rounded,
+    this.icon = WtsIcons.image,
     this.iconSize = 36,
   });
 
   final int seed;
-  final IconData icon;
+  final WtsIcon icon;
   final double iconSize;
 
   @override
@@ -103,7 +104,7 @@ class ImagePlaceholder extends StatelessWidget {
         ),
       ),
       child: Center(
-        child: Icon(
+        child: AppIcon(
           icon,
           size: iconSize,
           color: Colors.white.withValues(alpha: .9),
@@ -214,41 +215,41 @@ class ProductPhotoView extends StatelessWidget {
   final int angleIndex;
   final double iconSize;
 
-  IconData _iconForProduct() {
+  WtsIcon _iconForProduct() {
     final t = (title ?? '').toLowerCase();
-    if (t.contains('kalkulator')) return Icons.calculate_rounded;
+    if (t.contains('kalkulator')) return WtsIcons.calculator;
     if (t.contains('laptop') || t.contains('asus')) {
-      return Icons.laptop_mac_rounded;
+      return WtsIcons.laptop;
     }
-    if (t.contains('mouse')) return Icons.mouse_rounded;
-    if (t.contains('proyektor')) return Icons.videocam_rounded;
+    if (t.contains('mouse')) return WtsIcons.mouse;
+    if (t.contains('proyektor')) return WtsIcons.videocam;
     if (t.contains('esp32') || t.contains('breadboard') || category == 'IoT') {
-      return Icons.memory_rounded;
+      return WtsIcons.memory;
     }
     if (t.contains('jas') || t.contains('almamater')) {
-      return Icons.checkroom_rounded;
+      return WtsIcons.clothes;
     }
     if (t.contains('buku') ||
         t.contains('modul') ||
         category == 'Buku/Modul') {
-      return Icons.menu_book_rounded;
+      return WtsIcons.fileText;
     }
     switch (category) {
       case 'Alat Praktikum':
-        return Icons.science_rounded;
+        return WtsIcons.science;
       case 'Jas Lab':
       case 'Pakaian/Almamater':
-        return Icons.checkroom_rounded;
+        return WtsIcons.clothes;
       case 'Laptop & Aksesoris':
-        return Icons.laptop_mac_rounded;
+        return WtsIcons.laptop;
       case 'Elektronik':
-        return Icons.devices_other_rounded;
+        return WtsIcons.devices;
       case 'Alat Tulis/Gambar':
-        return Icons.draw_rounded;
+        return WtsIcons.draw;
       case 'Perlengkapan Kos':
-        return Icons.chair_alt_rounded;
+        return WtsIcons.chair;
       default:
-        return Icons.inventory_2_rounded;
+        return WtsIcons.package;
     }
   }
 
@@ -277,7 +278,7 @@ class ProductPhotoView extends StatelessWidget {
           Positioned(
             right: -14,
             bottom: -14,
-            child: Icon(
+            child: AppIcon(
               _iconForProduct(),
               size: iconSize * 2.1,
               color: Colors.white.withValues(alpha: .16),
@@ -296,7 +297,7 @@ class ProductPhotoView extends StatelessWidget {
                       color: Colors.white.withValues(alpha: .45),
                     ),
                   ),
-                  child: Icon(
+                  child: AppIcon(
                     _iconForProduct(),
                     size: iconSize,
                     color: Colors.white,
@@ -371,7 +372,7 @@ class GlassChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final IconData? icon;
+  final WtsIcon? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +396,7 @@ class GlassChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(
+              AppIcon(
                 icon,
                 size: 16,
                 color: selected ? Colors.white : AppColors.ink,
@@ -426,7 +427,7 @@ class EmptyState extends StatelessWidget {
     this.action,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final String title;
   final String? message;
   final Widget? action;
@@ -439,7 +440,7 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 56, color: AppColors.primary.withValues(alpha: .6)),
+            AppIcon(icon, size: 56, color: AppColors.primary.withValues(alpha: .6)),
             const SizedBox(height: 12),
             Text(
               title,
@@ -475,12 +476,12 @@ class ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EmptyState(
-      icon: Icons.wifi_off_rounded,
+      icon: WtsIcons.wifiOff,
       title: 'Gagal memuat data',
       message: message ?? 'Periksa koneksi internet lalu coba lagi.',
       action: FilledButton.icon(
         onPressed: onRetry,
-        icon: const Icon(Icons.refresh_rounded),
+        icon: const AppIcon(WtsIcons.refresh),
         label: const Text('Coba lagi'),
       ),
     );
@@ -520,7 +521,7 @@ OutlineInputBorder _border(Color color) => OutlineInputBorder(
 InputDecoration glassInput({
   String? hint,
   String? label,
-  IconData? prefix,
+  WtsIcon? prefix,
   String? prefixText,
   Widget? suffix,
   String? errorText,
@@ -528,7 +529,7 @@ InputDecoration glassInput({
   return InputDecoration(
     hintText: hint,
     labelText: label,
-    prefixIcon: prefix == null ? null : Icon(prefix, size: 20),
+    prefixIcon: prefix == null ? null : AppIcon(prefix, size: 20),
     prefixText: prefixText,
     suffixIcon: suffix,
     errorText: errorText,
@@ -569,7 +570,7 @@ class GlassSearchField extends StatelessWidget {
             controller: controller,
             onChanged: onChanged,
             textInputAction: TextInputAction.search,
-            decoration: glassInput(hint: hint, prefix: Icons.search_rounded),
+            decoration: glassInput(hint: hint, prefix: WtsIcons.search),
           ),
         ),
         if (onFilterTap != null) ...[
@@ -586,7 +587,7 @@ class GlassSearchField extends StatelessWidget {
                 child: const SizedBox(
                   width: 50,
                   height: 50,
-                  child: Icon(Icons.tune_rounded, color: AppColors.ink),
+                  child: AppIcon(WtsIcons.filter, color: AppColors.ink),
                 ),
               ),
             ),

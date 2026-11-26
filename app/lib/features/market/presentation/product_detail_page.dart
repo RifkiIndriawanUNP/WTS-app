@@ -11,27 +11,28 @@ import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
 import 'package:wts/features/market/presentation/offer_sheet.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 import 'package:wts/shared/widgets/dialogs.dart';
 
 const double _kHeroHeight = 300;
 
-IconData _categoryIcon(String c) {
+WtsIcon _categoryIcon(String c) {
   switch (c) {
     case 'IoT':
-      return Icons.electrical_services_rounded;
+      return WtsIcons.plug;
     case 'Buku':
-      return Icons.menu_book_outlined;
+      return WtsIcons.fileText;
     case 'Elektronik':
-      return Icons.devices_other_outlined;
+      return WtsIcons.devices;
     case 'Perabot':
-      return Icons.chair_outlined;
+      return WtsIcons.chair;
     case 'Kos':
-      return Icons.home_outlined;
+      return WtsIcons.home;
     case 'Jasa':
-      return Icons.handyman_outlined;
+      return WtsIcons.settings;
     default:
-      return Icons.category_outlined;
+      return WtsIcons.gridDots;
   }
 }
 
@@ -169,7 +170,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                   ),
                   const Expanded(
                     child: EmptyState(
-                      icon: Icons.inventory_2_outlined,
+                      icon: WtsIcons.package,
                       title: 'Barang tidak ditemukan',
                       message: 'Barang sudah dihapus atau kedaluwarsa.',
                     ),
@@ -252,7 +253,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                       child: Row(
                         children: [
                           RoundIconButton(
-                            icon: Icons.arrow_back_ios_new_rounded,
+                            icon: WtsIcons.chevronLeft,
                             iconSize: 20,
                             size: 46,
                             background: Colors.white.withValues(alpha: .92),
@@ -354,10 +355,10 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
+                                  AppIcon(
                                     saved
-                                        ? Icons.favorite_rounded
-                                        : Icons.favorite_border_rounded,
+                                        ? WtsIcons.heartFilled
+                                        : WtsIcons.heart,
                                     size: 20,
                                     color: saved ? MC.red : MC.ink,
                                   ),
@@ -412,7 +413,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                         children: [
                           Expanded(
                             child: _InfoBox(
-                              icon: Icons.check_circle_outline_rounded,
+                              icon: WtsIcons.circleCheck,
                               label: 'Kondisi',
                               value: p.isUsed ? 'Second' : 'Baru',
                             ),
@@ -428,7 +429,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: _InfoBox(
-                              icon: Icons.location_on_outlined,
+                              icon: WtsIcons.pin,
                               label: 'Serah terima',
                               value: p.handover.label,
                             ),
@@ -539,7 +540,7 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
       actions = Row(
         children: [
           RoundIconButton(
-            icon: Icons.delete_outline_rounded,
+            icon: WtsIcons.trash,
             color: MC.red,
             size: 52,
             shadow: false,
@@ -663,7 +664,7 @@ class _MoreMenu extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: softShadow(.10, 14),
         ),
-        child: const Icon(Icons.more_vert_rounded, size: 22, color: MC.ink),
+        child: const AppIcon(WtsIcons.moreVert, size: 22, color: MC.ink),
       ),
     );
   }
@@ -676,7 +677,7 @@ class _InfoBox extends StatelessWidget {
     required this.value,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final String label;
   final String value;
 
@@ -692,7 +693,7 @@ class _InfoBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 22, color: MC.orangeIcon),
+          AppIcon(icon, size: 22, color: MC.orangeIcon),
           const SizedBox(height: 10),
           Text(
             label,
@@ -761,7 +762,7 @@ class _SellerCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.verified_rounded, size: 18, color: MC.blue),
+                    const AppIcon(WtsIcons.verified, size: 18, color: MC.blue),
                   ],
                 ),
                 const SizedBox(height: 2),

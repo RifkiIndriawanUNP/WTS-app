@@ -6,6 +6,7 @@ import 'package:wts/features/market/presentation/market_filter_sheet.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
 import 'package:wts/features/market/presentation/product_card.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 
 /// Urutan chip kategori di beranda Market (sesuai desain).
@@ -212,7 +213,7 @@ class _MarketPageState extends ConsumerState<MarketPage> {
                         return const SliverFillRemaining(
                           hasScrollBody: false,
                           child: EmptyState(
-                            icon: Icons.search_off_rounded,
+                            icon: WtsIcons.search,
                             title: 'Belum ada barang',
                             message:
                                 'Coba ubah filter, atau jadilah yang pertama memposting.',
@@ -282,7 +283,7 @@ class _MarketPageState extends ConsumerState<MarketPage> {
 
     Widget btn(
       DockId id,
-      IconData icon,
+      WtsIcon icon,
       VoidCallback onTap, {
       String? hint,
       bool dot = false,
@@ -309,17 +310,17 @@ class _MarketPageState extends ConsumerState<MarketPage> {
         top: dockTop,
         child: _DockCapsule(count: _popcount(_dockMask)),
       ),
-      btn(DockId.favorite, Icons.favorite_border_rounded, _openFavorites),
-      btn(DockId.orders, Icons.shopping_bag_outlined, _openTransactions),
+      btn(DockId.favorite, WtsIcons.heart, _openFavorites),
+      btn(DockId.orders, WtsIcons.bag, _openTransactions),
       btn(
         DockId.search,
-        Icons.search_rounded,
+        WtsIcons.search,
         _openSearch,
         hint: 'Cari buku, gawai, catatan kuliah',
       ),
       btn(
         DockId.filter,
-        Icons.filter_alt_outlined,
+        WtsIcons.filter,
         _openFilter,
         dot: filterActive,
       ),
@@ -392,7 +393,7 @@ class _Header extends StatelessWidget {
                   _Anchor(
                     anchor: anchors[DockId.favorite.index],
                     child: RoundIconButton(
-                      icon: Icons.favorite_border_rounded,
+                      icon: WtsIcons.heart,
                       size: 44,
                       onTap: onFavorites,
                       tooltip: 'Favorit',
@@ -402,7 +403,7 @@ class _Header extends StatelessWidget {
                   _Anchor(
                     anchor: anchors[DockId.orders.index],
                     child: RoundIconButton(
-                      icon: Icons.shopping_bag_outlined,
+                      icon: WtsIcons.bag,
                       size: 44,
                       onTap: onTransactions,
                       tooltip: 'Transaksi saya',
@@ -470,7 +471,7 @@ class _Header extends StatelessWidget {
                     clipBehavior: Clip.none,
                     children: [
                       RoundIconButton(
-                        icon: Icons.filter_alt_outlined,
+                        icon: WtsIcons.filter,
                         size: 52,
                         iconSize: 24,
                         onTap: onFilter,
@@ -550,7 +551,7 @@ class _SearchBox extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 18),
             child: Row(
               children: [
-                const Icon(Icons.search_rounded, size: 22, color: MC.slate),
+                const AppIcon(WtsIcons.search, size: 22, color: MC.slate),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -670,8 +671,8 @@ class _CountRow extends StatelessWidget {
                   style: mt(size: 13, weight: FontWeight.w600, color: MC.ink),
                 ),
                 const SizedBox(width: 2),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                const AppIcon(
+                  WtsIcons.chevronDown,
                   size: 20,
                   color: MC.ink,
                 ),
@@ -815,7 +816,7 @@ class _DockButton extends StatefulWidget {
   final double dockLeft;
   final double dockTop;
   final double topInset;
-  final IconData icon;
+  final WtsIcon icon;
   final VoidCallback onTap;
   final String? hint;
   final bool showDot;
@@ -940,7 +941,7 @@ class _DockButtonState extends State<_DockButton>
                             ),
                             child: Row(
                               children: [
-                                Icon(
+                                AppIcon(
                                   widget.icon,
                                   size: 22,
                                   color: Color.lerp(MC.slate, MC.ink, t),
@@ -969,7 +970,7 @@ class _DockButtonState extends State<_DockButton>
                       ),
                     )
                   else
-                    Icon(widget.icon, size: 22, color: MC.ink),
+                    AppIcon(widget.icon, size: 22, color: MC.ink),
                   if (widget.showDot)
                     Positioned(
                       right: 9,
@@ -1020,7 +1021,7 @@ class _AddFab extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: const Icon(Icons.add_rounded, size: 30, color: Colors.white),
+          child: const AppIcon(WtsIcons.plus, size: 30, color: Colors.white),
         ),
       ),
     );

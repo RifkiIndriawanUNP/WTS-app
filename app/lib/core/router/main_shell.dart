@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wts/core/router/nav_collapse.dart';
 import 'package:wts/features/chat/presentation/chat_list_providers.dart';
 import 'package:wts/features/notifications/presentation/notification_providers.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/glass.dart';
 
 const _kNavBlue = Color(0xFF2563EB);
@@ -83,27 +84,27 @@ class GlassNavBar extends StatefulWidget {
   final VoidCallback? onExpand;
   final Map<int, int> badges;
 
-  // Ikon placeholder Material (padanan terdekat ikon desain).
-  static const items = <({IconData icon, IconData active, String label})>[
-    (icon: Icons.home_outlined, active: Icons.home_rounded, label: 'Home'),
+  // Ikon SVG desain (lihat shared/widgets/app_icons.dart).
+  static const items = <({WtsIcon icon, WtsIcon active, String label})>[
+    (icon: WtsIcons.home, active: WtsIcons.home, label: 'Home'),
     (
-      icon: Icons.storefront_outlined,
-      active: Icons.storefront_outlined,
+      icon: WtsIcons.store,
+      active: WtsIcons.store,
       label: 'Market',
     ),
     (
-      icon: Icons.chat_bubble_outline_rounded,
-      active: Icons.chat_bubble_outline_rounded,
+      icon: WtsIcons.chat,
+      active: WtsIcons.chat,
       label: 'Chat',
     ),
     (
-      icon: Icons.notifications_none_rounded,
-      active: Icons.notifications_none_rounded,
+      icon: WtsIcons.bell,
+      active: WtsIcons.bell,
       label: 'Notif',
     ),
     (
-      icon: Icons.person_outline_rounded,
-      active: Icons.person_outline_rounded,
+      icon: WtsIcons.user,
+      active: WtsIcons.user,
       label: 'Profil',
     ),
   ];
@@ -209,7 +210,7 @@ class _GlassNavBarState extends State<GlassNavBar> {
                               isLabelVisible:
                                   (widget.badges[widget.currentIndex] ?? 0) > 0,
                               smallSize: 8,
-                              child: Icon(
+                              child: AppIcon(
                                 GlassNavBar.items[widget.currentIndex].active,
                                 size: 26,
                                 color: _kNavBlue,
@@ -392,7 +393,7 @@ class _NavItem extends StatelessWidget {
     required this.badge,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final String label;
   final bool selected;
   final int badge;
@@ -410,7 +411,7 @@ class _NavItem extends StatelessWidget {
           child: AnimatedScale(
             scale: selected ? 1.05 : 1,
             duration: const Duration(milliseconds: 180),
-            child: Icon(icon, size: 25, color: color),
+            child: AppIcon(icon, size: 25, color: color),
           ),
         ),
         AnimatedSize(

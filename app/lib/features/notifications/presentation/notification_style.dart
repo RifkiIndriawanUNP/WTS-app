@@ -1,4 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+/// Folder ikon SVG (isi folder wts_ikon dari Figma).
+const kIconDir = 'assets/icons';
+
+/// Ikon SVG dari aset. [name] = nama file tanpa `.svg`, mis. `bell-blue-20-2563eb`.
+class NotifSvg extends StatelessWidget {
+  const NotifSvg(this.name, {super.key, this.size, this.color});
+
+  final String name;
+  final double? size;
+
+  /// Jika diisi, ikon diwarnai ulang (hanya untuk ikon garis satu warna).
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.asset(
+      '$kIconDir/$name.svg',
+      width: size,
+      height: size,
+      colorFilter:
+          color == null ? null : ColorFilter.mode(color!, BlendMode.srcIn),
+      placeholderBuilder: (_) => SizedBox(width: size, height: size),
+    );
+  }
+}
 
 /// Warna khusus layar Notifikasi (mengikuti desain Figma).
 class NotifColors {
@@ -34,14 +61,15 @@ class NotifTone {
 class NotifIconTile extends StatelessWidget {
   const NotifIconTile({
     super.key,
-    required this.icon,
+    required this.svg,
     required this.tone,
     this.size = 48,
     this.radius = 14,
     this.iconSize = 24,
   });
 
-  final IconData icon;
+  /// Nama file ikon (tanpa `.svg`) di folder [kIconDir].
+  final String svg;
   final NotifTone tone;
   final double size;
   final double radius;
@@ -57,7 +85,7 @@ class NotifIconTile extends StatelessWidget {
         color: tone.bg,
         borderRadius: BorderRadius.circular(radius),
       ),
-      child: Icon(icon, size: iconSize, color: tone.fg),
+      child: NotifSvg(svg, size: iconSize),
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:wts/features/chat/presentation/chat_ui.dart';
 import 'package:wts/features/chat/presentation/dm_providers.dart';
 import 'package:wts/features/chat/presentation/market_chat_providers.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 
 enum _Filter { all, dm, market }
@@ -127,13 +128,13 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
                                 const SizedBox(height: 60),
                                 _query.trim().isNotEmpty
                                     ? const EmptyState(
-                                        icon: Icons.search_off_rounded,
+                                        icon: WtsIcons.search,
                                         title: 'Tidak ada hasil',
                                         message:
                                             'Coba kata kunci lain atau ubah filter.',
                                       )
                                     : const EmptyState(
-                                        icon: Icons.chat_bubble_outline_rounded,
+                                        icon: WtsIcons.chat,
                                         title: 'Belum ada percakapan',
                                         message:
                                             'Mulai chat dari produk di Market atau tekan tombol pensil.',
@@ -198,8 +199,8 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(
-                                        Icons.search_rounded,
+                                      const AppIcon(
+                                        WtsIcons.search,
                                         size: 22,
                                         color: ChatColors.muted,
                                       ),
@@ -232,7 +233,7 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
                               ),
                               const SizedBox(width: 10),
                               ChatCircleButton(
-                                icon: Icons.close_rounded,
+                                icon: WtsIcons.close,
                                 size: 52,
                                 iconSize: 24,
                                 onTap: _closeSearch,
@@ -257,7 +258,7 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
                                 ),
                               ),
                               ChatCircleButton(
-                                icon: Icons.search_rounded,
+                                icon: WtsIcons.search,
                                 size: 52,
                                 iconSize: 26,
                                 onTap: _openSearch,
@@ -330,8 +331,8 @@ class _ChatListPageState extends ConsumerState<ChatListPage> {
                 child: const SizedBox(
                   width: kNavCircle,
                   height: kNavCircle,
-                  child: Icon(
-                    Icons.edit_square,
+                  child: AppIcon(
+                    WtsIcons.squareEdit,
                     color: Colors.white,
                     size: 26,
                   ),
@@ -562,8 +563,8 @@ class _ChatTile extends StatelessWidget {
                         ),
                       ] else if (item.lastFromMe) ...[
                         const SizedBox(width: 8),
-                        Icon(
-                          Icons.done_all_rounded,
+                        AppIcon(
+                          WtsIcons.checkAll,
                           size: 20,
                           color: item.lastRead
                               ? ChatColors.blue

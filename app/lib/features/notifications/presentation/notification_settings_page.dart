@@ -14,7 +14,7 @@ class NotificationSettingsPage extends ConsumerWidget {
 
     _Row toggle(
       NotifSetting key,
-      IconData icon,
+      String icon,
       NotifTone tone,
       String title,
       String subtitle,
@@ -50,10 +50,11 @@ class NotificationSettingsPage extends ConsumerWidget {
                       child: const SizedBox(
                         width: 48,
                         height: 48,
-                        child: Icon(
-                          Icons.chevron_left_rounded,
-                          size: 30,
-                          color: NotifColors.navy,
+                        child: Center(
+                          child: NotifSvg(
+                            'chevron-left-navy-24-0b2368',
+                            size: 28,
+                          ),
                         ),
                       ),
                     ),
@@ -75,21 +76,21 @@ class NotificationSettingsPage extends ConsumerWidget {
               rows: [
                 toggle(
                   NotifSetting.allow,
-                  Icons.notifications_none_rounded,
+                  'bell-blue-20-2563eb',
                   NotifTone.blue,
                   'Izinkan notifikasi',
                   'Push di layar kunci\ndan bilah notifikasi',
                 ),
                 toggle(
                   NotifSetting.badge,
-                  Icons.notifications_none_rounded,
+                  'bell-gray-20-64748b',
                   NotifTone.gray,
                   'Lencana angka di ikon',
                   'Jumlah notifikasi belum\ndibaca',
                 ),
                 toggle(
                   NotifSetting.sound,
-                  Icons.flash_on_outlined,
+                  'zap-amber-20-f59e0b-sw1_66667',
                   NotifTone.yellow,
                   'Suara dan getar',
                   'Untuk notifikasi\npenting',
@@ -101,27 +102,27 @@ class NotificationSettingsPage extends ConsumerWidget {
               rows: [
                 toggle(
                   NotifSetting.offers,
-                  Icons.shopping_bag_outlined,
+                  'shopping-bag-blue',
                   NotifTone.blue,
                   'Kesepakatan dan tawaran',
                   'Baru, diubah, disetujui, ditolak',
                 ),
                 toggle(
                   NotifSetting.codReminder,
-                  Icons.schedule_outlined,
+                  'clock-amber-24',
                   NotifTone.orange,
                   'Pengingat jadwal COD',
                   'H-1 dan 1 jam sebelum\nbertemu',
                 ),
                 toggle(
                   NotifSetting.txStatus,
-                  Icons.location_on_outlined,
+                  'map-pin-green',
                   NotifTone.green,
                   'Status transaksi',
                   'Berangkat, sampai,\nterjual',
                 ),
                 const _Row(
-                  icon: Icons.event_busy_outlined,
+                  icon: 'calendar-x',
                   tone: NotifTone.red,
                   title: 'Pembatalan dan perubahan jadwal',
                   subtitle: 'Penting, selalu aktif',
@@ -146,14 +147,14 @@ class NotificationSettingsPage extends ConsumerWidget {
               rows: [
                 toggle(
                   NotifSetting.newMessage,
-                  Icons.mark_chat_unread_outlined,
+                  'message-square-dot',
                   NotifTone.purple,
                   'Pesan baru',
                   'Pribadi dan\nMarket',
                 ),
                 toggle(
                   NotifSetting.lockPreview,
-                  Icons.visibility_outlined,
+                  'eye-indigo-20-4f46e5',
                   NotifTone.blue,
                   'Pratinjau pesan di layar kunci',
                   'Tampilkan isi pesan',
@@ -165,7 +166,7 @@ class NotificationSettingsPage extends ConsumerWidget {
               rows: [
                 toggle(
                   NotifSetting.comments,
-                  Icons.textsms_outlined,
+                  'message-circle-more-purple-24',
                   NotifTone.purple,
                   'Komentar dan balasan',
                   'Di postinganmu',
@@ -177,7 +178,7 @@ class NotificationSettingsPage extends ConsumerWidget {
               rows: [
                 toggle(
                   NotifSetting.campus,
-                  Icons.campaign_outlined,
+                  'clock-broken-green',
                   NotifTone.green,
                   'Pengumuman kampus',
                   'Info penting dari admin',
@@ -260,7 +261,7 @@ class _Row extends StatelessWidget {
     this.locked = false,
   });
 
-  final IconData icon;
+  final String icon;
   final NotifTone tone;
   final String title;
   final String subtitle;
@@ -275,7 +276,7 @@ class _Row extends StatelessWidget {
       child: Row(
         children: [
           NotifIconTile(
-            icon: icon,
+            svg: icon,
             tone: tone,
             size: 42,
             radius: 13,
@@ -309,11 +310,7 @@ class _Row extends StatelessWidget {
           if (locked)
             const Padding(
               padding: EdgeInsets.only(left: 8, right: 6),
-              child: Icon(
-                Icons.lock_outline_rounded,
-                size: 22,
-                color: NotifColors.hint,
-              ),
+              child: NotifSvg('lock-lightgray', size: 22),
             )
           else
             Switch(

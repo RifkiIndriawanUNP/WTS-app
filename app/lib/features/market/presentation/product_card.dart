@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 /// Tinggi tetap sel grid agar baris rapi (foto 142 + teks).
 const double kCardExtentPlain = 228;
@@ -185,8 +186,8 @@ class _HeartButton extends StatelessWidget {
           color: Colors.white,
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          saved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        child: AppIcon(
+          saved ? WtsIcons.heartFilled : WtsIcons.heart,
           size: 17,
           color: saved ? MC.red : MC.ink,
         ),

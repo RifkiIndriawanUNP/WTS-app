@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wts/core/utils/guard.dart';
 import 'package:wts/features/chat/presentation/chat_ui.dart';
 import 'package:wts/features/market/domain/product.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 // ---------------------------------------------------------- tolak tawaran
 
@@ -342,7 +343,7 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
         ),
       );
 
-  Widget _stepButton(IconData icon, VoidCallback onTap) {
+  Widget _stepButton(WtsIcon icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -352,13 +353,13 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
           shape: BoxShape.circle,
           border: Border.all(color: const Color(0xFFD5DAE5), width: 1.5),
         ),
-        child: Icon(icon, size: 24, color: ChatColors.ink),
+        child: AppIcon(icon, size: 24, color: ChatColors.ink),
       ),
     );
   }
 
   Widget _infoRow({
-    required IconData icon,
+    required WtsIcon icon,
     required String title,
     required String sub,
     required VoidCallback onTap,
@@ -378,7 +379,7 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
               color: ChatColors.blueTint,
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: ChatColors.blue, size: 24),
+            child: AppIcon(icon, color: ChatColors.blue, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -440,7 +441,7 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _stepButton(Icons.remove_rounded, () => _bump(-_unit)),
+                _stepButton(WtsIcons.minus, () => _bump(-_unit)),
                 Text(
                   chatRp(_price),
                   style: const TextStyle(
@@ -449,7 +450,7 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
                     color: ChatColors.ink,
                   ),
                 ),
-                _stepButton(Icons.add_rounded, () => _bump(_unit)),
+                _stepButton(WtsIcons.plus, () => _bump(_unit)),
               ],
             ),
             const SizedBox(height: 14),
@@ -491,7 +492,7 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
             ),
             _section('2 · Waktu'),
             _infoRow(
-              icon: Icons.calendar_month_outlined,
+              icon: WtsIcons.calendarDays,
               title: '${dayLong(_meetAt)} · ${dotClock(_meetAt)}',
               sub:
                   '${daysUntilLabel(_meetAt).toLowerCase()}, maksimal 7 hari ke depan',
@@ -499,7 +500,7 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
             ),
             _section('3 · Tempat'),
             _infoRow(
-              icon: Icons.location_on_outlined,
+              icon: WtsIcons.pin,
               title: _place,
               sub: 'Pilih titik yang ramai dan mudah ditemukan',
               onTap: _editPlace,
@@ -515,8 +516,8 @@ class _EditOfferSheetState extends State<_EditOfferSheet> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
+                  const AppIcon(
+                    WtsIcons.info,
                     size: 22,
                     color: Color(0xFFB45309),
                   ),

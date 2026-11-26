@@ -12,6 +12,7 @@ import 'package:wts/features/chat/presentation/dm_providers.dart';
 import 'package:wts/features/chat/presentation/message_widgets.dart';
 import 'package:wts/features/chat/presentation/share_flows.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 import 'package:wts/shared/widgets/dialogs.dart';
 
@@ -170,7 +171,7 @@ class _DmRoomPageState extends ConsumerState<DmRoomPage> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: ChatCircleButton(
-                        icon: Icons.chevron_left_rounded,
+                        icon: WtsIcons.chevronLeft,
                         iconSize: 30,
                         onTap: context.pop,
                       ),
@@ -178,7 +179,7 @@ class _DmRoomPageState extends ConsumerState<DmRoomPage> {
                   ),
                   const Expanded(
                     child: EmptyState(
-                      icon: Icons.chat_bubble_outline_rounded,
+                      icon: WtsIcons.chat,
                       title: 'Percakapan tidak tersedia',
                     ),
                   ),
@@ -226,7 +227,7 @@ class _DmRoomPageState extends ConsumerState<DmRoomPage> {
             child: Text('Simulasi: dia membalas'),
           ),
       ],
-      child: const ChatCircle(icon: Icons.more_vert_rounded),
+      child: const ChatCircle(icon: WtsIcons.moreVert),
     );
   }
 

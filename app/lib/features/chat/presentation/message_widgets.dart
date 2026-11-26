@@ -8,6 +8,7 @@ import 'package:wts/features/chat/domain/chat_models.dart';
 import 'package:wts/features/chat/presentation/chat_ui.dart';
 import 'package:wts/features/chat/presentation/link_utils.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 // ------------------------------------------------------------------ daftar
 
@@ -193,7 +194,7 @@ class ReplyPreviewBar extends StatelessWidget {
           ),
           IconButton(
             onPressed: onClose,
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: const AppIcon(WtsIcons.close, size: 18),
             color: ChatColors.muted,
             visualDensity: VisualDensity.compact,
           ),
@@ -217,13 +218,13 @@ Future<String?> showMessageActions(
         mainAxisSize: MainAxisSize.min,
         children: [
           _ActionRow(
-            icon: Icons.reply_rounded,
+            icon: WtsIcons.reply,
             label: 'Balas',
             onTap: () => Navigator.of(ctx).pop('reply'),
           ),
           if (canDelete)
             _ActionRow(
-              icon: Icons.delete_outline_rounded,
+              icon: WtsIcons.trash,
               label: 'Hapus untuk semua orang',
               color: ChatColors.red,
               onTap: () => Navigator.of(ctx).pop('delete'),
@@ -242,7 +243,7 @@ class _ActionRow extends StatelessWidget {
     this.color = ChatColors.ink,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final String label;
   final VoidCallback onTap;
   final Color color;
@@ -256,7 +257,7 @@ class _ActionRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            Icon(icon, color: color, size: 24),
+            AppIcon(icon, color: color, size: 24),
             const SizedBox(width: 14),
             Text(
               label,
@@ -357,8 +358,8 @@ class _Stamp extends StatelessWidget {
         ),
         if (showTicks) ...[
           const SizedBox(width: 4),
-          Icon(
-            Icons.done_all_rounded,
+          AppIcon(
+            WtsIcons.checkAll,
             size: 16,
             color: read ? readColor : color,
           ),
@@ -482,7 +483,7 @@ class _TextBubble extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.link_rounded, color: fg, size: 20),
+              AppIcon(WtsIcons.link, color: fg, size: 20),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -509,7 +510,7 @@ class _TextBubble extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.location_on_rounded, color: fg),
+                  AppIcon(WtsIcons.pin, color: fg),
                   const SizedBox(width: 6),
                   Text(
                     'Lokasi dibagikan',
@@ -545,7 +546,7 @@ class _TextBubble extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.phone_in_talk_outlined, color: fg),
+              AppIcon(WtsIcons.phone, color: fg),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -638,8 +639,8 @@ class _ImageBubble extends StatelessWidget {
     return Container(
       color: const Color(0xFFE3EAFF),
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.image_outlined,
+      child: const AppIcon(
+        WtsIcons.image,
         size: 44,
         color: Color(0xFF5B7FEA),
       ),
@@ -781,16 +782,16 @@ class SystemChip extends StatelessWidget {
     final text = _text();
     if (text == null || text.isEmpty) return const SizedBox.shrink();
     final kind = message.meta['kind'];
-    IconData? icon;
+    WtsIcon? icon;
     Color iconColor = ChatColors.text2;
     if (kind == 'arrived') {
-      icon = Icons.location_on_rounded;
+      icon = WtsIcons.pin;
       iconColor = ChatColors.red;
     } else if (kind == 'sold') {
-      icon = Icons.check_rounded;
+      icon = WtsIcons.check;
       iconColor = ChatColors.green;
     } else if (kind == 'agreed' || kind == 'rescheduled') {
-      icon = Icons.check_rounded;
+      icon = WtsIcons.check;
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -806,7 +807,7 @@ class SystemChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[
-                Icon(icon, size: 16, color: iconColor),
+                AppIcon(icon, size: 16, color: iconColor),
                 const SizedBox(width: 8),
               ],
               Flexible(
@@ -838,7 +839,7 @@ class ComposerAction {
   });
 
   final String label;
-  final IconData icon;
+  final WtsIcon icon;
   final VoidCallback onTap;
 }
 
@@ -917,8 +918,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 shape: BoxShape.circle,
                 border: Border.all(color: const Color(0xFFD5DAE5)),
               ),
-              child: Icon(
-                Icons.add_rounded,
+              child: AppIcon(
+                WtsIcons.plus,
                 size: 26,
                 color: widget.enabled ? ChatColors.ink : ChatColors.hint,
               ),
@@ -957,8 +958,8 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 color: canSend ? ChatColors.blue : const Color(0xFFEEF0F6),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                Icons.send_outlined,
+              child: AppIcon(
+                WtsIcons.send,
                 size: 22,
                 color: canSend ? Colors.white : const Color(0xFF7C879B),
               ),
@@ -1027,7 +1028,7 @@ Future<void> showAttachSheet(
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.photo_camera_rounded,
+                      AppIcon(WtsIcons.camera,
                           color: Colors.white, size: 26),
                       SizedBox(width: 10),
                       Text(
@@ -1097,7 +1098,7 @@ Future<void> showAttachSheet(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(a.icon, size: 28, color: ChatColors.blue),
+                              AppIcon(a.icon, size: 28, color: ChatColors.blue),
                               const SizedBox(height: 8),
                               Text(
                                 a.label,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:wts/core/utils/format.dart';
 import 'package:wts/features/chat/domain/chat_models.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 
 /// Font desain chat (Plus Jakarta Sans). Daftarkan di pubspec bila tersedia;
@@ -215,7 +216,7 @@ class ChatCircle extends StatelessWidget {
     this.color = ChatColors.ink,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final double size;
   final double iconSize;
   final Color color;
@@ -237,7 +238,7 @@ class ChatCircle extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(icon, size: iconSize, color: color),
+      child: AppIcon(icon, size: iconSize, color: color),
     );
   }
 }
@@ -252,7 +253,7 @@ class ChatCircleButton extends StatelessWidget {
     this.color = ChatColors.ink,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final VoidCallback? onTap;
   final double size;
   final double iconSize;
@@ -299,7 +300,7 @@ class ChatRoomHeader extends StatelessWidget {
       child: Row(
         children: [
           ChatCircleButton(
-            icon: Icons.chevron_left_rounded,
+            icon: WtsIcons.chevronLeft,
             iconSize: 30,
             onTap: onBack,
           ),
@@ -382,7 +383,7 @@ class ChatPill extends StatelessWidget {
   final String label;
   final Color background;
   final Color foreground;
-  final IconData? icon;
+  final WtsIcon? icon;
   final double fontSize;
   final double radius;
   final EdgeInsetsGeometry padding;
@@ -399,7 +400,7 @@ class ChatPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: fontSize + 3, color: foreground),
+            AppIcon(icon, size: fontSize + 3, color: foreground),
             const SizedBox(width: 5),
           ],
           Flexible(
@@ -478,7 +479,7 @@ class ChatButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final bool filled;
-  final IconData? icon;
+  final WtsIcon? icon;
   final double height;
 
   /// null = pil penuh.
@@ -528,7 +529,7 @@ class ChatButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20, color: fg),
+                    AppIcon(icon, size: 20, color: fg),
                     const SizedBox(width: 6),
                   ],
                   Flexible(
@@ -643,8 +644,8 @@ class ChatSheetFrame extends StatelessWidget {
                           color: Color(0xFFEEF1F6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
-                          Icons.close_rounded,
+                        child: const AppIcon(
+                          WtsIcons.close,
                           size: 20,
                           color: ChatColors.muted,
                         ),

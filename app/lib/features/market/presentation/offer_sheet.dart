@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 /// Hasil sheet "Ajukan kesepakatan".
 class OfferDraft {
@@ -181,7 +182,7 @@ class _OfferSheetState extends State<_OfferSheet> {
                   Row(
                     children: [
                       _StepButton(
-                        icon: Icons.remove_rounded,
+                        icon: WtsIcons.minus,
                         onTap: _fixedPrice ? null : () => _step(-_kPriceStep),
                       ),
                       Expanded(
@@ -208,7 +209,7 @@ class _OfferSheetState extends State<_OfferSheet> {
                         ),
                       ),
                       _StepButton(
-                        icon: Icons.add_rounded,
+                        icon: WtsIcons.plus,
                         onTap: _fixedPrice ? null : () => _step(_kPriceStep),
                       ),
                     ],
@@ -222,7 +223,7 @@ class _OfferSheetState extends State<_OfferSheet> {
                         child: _Field(
                           label: 'Tanggal',
                           value: _dateText(_date),
-                          leading: Icons.calendar_today_outlined,
+                          leading: WtsIcons.calendar,
                           onTap: _pickDate,
                           alignStart: true,
                         ),
@@ -279,8 +280,8 @@ class _OfferSheetState extends State<_OfferSheet> {
                       children: [
                         const Padding(
                           padding: EdgeInsets.only(top: 2),
-                          child: Icon(
-                            Icons.info_outline_rounded,
+                          child: AppIcon(
+                            WtsIcons.info,
                             size: 20,
                             color: MC.blue,
                           ),
@@ -358,7 +359,7 @@ class _OfferSheetState extends State<_OfferSheet> {
 class _StepButton extends StatelessWidget {
   const _StepButton({required this.icon, required this.onTap});
 
-  final IconData icon;
+  final WtsIcon icon;
   final VoidCallback? onTap;
 
   @override
@@ -379,7 +380,7 @@ class _StepButton extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
-            child: Icon(icon, size: 24, color: MC.text),
+            child: AppIcon(icon, size: 24, color: MC.text),
           ),
         ),
       ),
@@ -399,7 +400,7 @@ class _Field extends StatelessWidget {
   final String label;
   final String value;
   final VoidCallback onTap;
-  final IconData? leading;
+  final WtsIcon? leading;
   final bool alignStart;
 
   @override
@@ -432,7 +433,7 @@ class _Field extends StatelessWidget {
                     : MainAxisAlignment.center,
                 children: [
                   if (leading != null) ...[
-                    Icon(leading, size: 22, color: MC.text),
+                    AppIcon(leading, size: 22, color: MC.text),
                     const SizedBox(width: 12),
                   ],
                   Flexible(

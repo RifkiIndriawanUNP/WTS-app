@@ -9,6 +9,7 @@ import 'package:wts/features/chat/presentation/chat_ui.dart';
 import 'package:wts/features/chat/presentation/message_widgets.dart';
 import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/dialogs.dart';
 import 'package:wts/shared/widgets/product_image.dart';
 
@@ -289,7 +290,7 @@ class _StepColumn extends StatelessWidget {
             color: ChatColors.blue,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
+          child: const AppIcon(WtsIcons.check, color: Colors.white, size: 20),
         );
       case _StepState.active:
         circle = Container(
@@ -319,8 +320,8 @@ class _StepColumn extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: const Color(0xFFE8890C), width: 2.5),
           ),
-          child: const Icon(
-            Icons.access_time_rounded,
+          child: const AppIcon(
+            WtsIcons.clock,
             size: 18,
             color: Color(0xFFE8890C),
           ),
@@ -462,8 +463,8 @@ class OfferFullCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.local_offer_outlined,
+              const AppIcon(
+                WtsIcons.tag,
                 size: 17,
                 color: ChatColors.orange,
               ),
@@ -567,7 +568,7 @@ class OfferFullCard extends StatelessWidget {
             children: [
               ChatPill(
                 label: '$proposer · setuju',
-                icon: Icons.check_rounded,
+                icon: WtsIcons.check,
                 background: ChatColors.greenBg,
                 foreground: ChatColors.greenText,
                 radius: 14,
@@ -575,7 +576,7 @@ class OfferFullCard extends StatelessWidget {
               ),
               ChatPill(
                 label: '$other · menunggu',
-                icon: Icons.access_time_rounded,
+                icon: WtsIcons.clock,
                 background: const Color(0xFFFEF0CD),
                 foreground: const Color(0xFF92400E),
                 radius: 14,
@@ -598,7 +599,7 @@ class OfferFullCard extends StatelessWidget {
                 Expanded(
                   child: ChatButton(
                     label: 'Setujui',
-                    icon: Icons.check_rounded,
+                    icon: WtsIcons.check,
                     filled: true,
                     height: 44,
                     onTap: onAccept,
@@ -807,12 +808,12 @@ class ScheduleCard extends StatelessWidget {
     return d.isNegative ? 'Hari H · sudah waktunya' : 'Hari H · ${remaining(meetAt)} lagi';
   }
 
-  Widget _bullet(IconData icon, String text) {
+  Widget _bullet(WtsIcon icon, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: ChatColors.muted),
+          AppIcon(icon, size: 20, color: ChatColors.muted),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -930,15 +931,15 @@ class ScheduleCard extends StatelessWidget {
           const Divider(height: 1, color: ChatColors.line),
           const SizedBox(height: 8),
           _bullet(
-            Icons.notifications_none_rounded,
+            WtsIcons.bell,
             'Pengingat dikirim H-1 dan 1 jam sebelum',
           ),
           _bullet(
-            Icons.access_time_rounded,
+            WtsIcons.clock,
             'Tombol Berangkat aktif ${slotLabel(opens)}',
           ),
           _bullet(
-            Icons.local_offer_outlined,
+            WtsIcons.tag,
             'Barang berlabel Dipesan di Market',
           ),
           const SizedBox(height: 12),
@@ -1013,8 +1014,8 @@ class TrackingCard extends StatelessWidget {
                     color: Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.near_me_outlined,
+                  child: const AppIcon(
+                    WtsIcons.send,
                     color: ChatColors.blue,
                     size: 22,
                   ),
@@ -1044,8 +1045,8 @@ class TrackingCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right_rounded,
+                const AppIcon(
+                  WtsIcons.chevronRight,
                   color: ChatColors.hint,
                   size: 24,
                 ),
@@ -1264,7 +1265,7 @@ class StatusActionCard extends StatelessWidget {
     this.onPrimary,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final String title;
   final String message;
   final String? primaryLabel;
@@ -1288,7 +1289,7 @@ class StatusActionCard extends StatelessWidget {
                   color: Color(0xFFE8EEFF),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: ChatColors.blue, size: 24),
+                child: AppIcon(icon, color: ChatColors.blue, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1366,7 +1367,7 @@ class DoneCard extends StatelessWidget {
 
     Widget chip(String text) => ChatPill(
           label: text,
-          icon: Icons.check_rounded,
+          icon: WtsIcons.check,
           background: ChatColors.greenBg,
           foreground: ChatColors.greenText,
           radius: 14,
@@ -1390,8 +1391,8 @@ class DoneCard extends StatelessWidget {
                   color: Color(0xFFD9F3E4),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.check_rounded,
+                child: const AppIcon(
+                  WtsIcons.check,
                   color: ChatColors.green,
                   size: 28,
                 ),
@@ -1478,8 +1479,8 @@ class LockedPanel extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(
-              Icons.lock_outline_rounded,
+            const AppIcon(
+              WtsIcons.lock,
               size: 22,
               color: Color(0xFF5B6B8C),
             ),
@@ -1615,7 +1616,7 @@ class _MarketInputPanelState extends State<MarketInputPanel> {
             onTap: () => setState(() => _expanded = !_expanded),
             child: Row(
               children: [
-                const Icon(Icons.bolt_rounded, size: 19, color: ChatColors.amber),
+                const AppIcon(WtsIcons.zap, size: 19, color: ChatColors.amber),
                 const SizedBox(width: 6),
                 const Expanded(
                   child: Text(
@@ -1627,10 +1628,10 @@ class _MarketInputPanelState extends State<MarketInputPanel> {
                     ),
                   ),
                 ),
-                Icon(
+                AppIcon(
                   _expanded
-                      ? Icons.keyboard_arrow_down_rounded
-                      : Icons.keyboard_arrow_up_rounded,
+                      ? WtsIcons.chevronDown
+                      : WtsIcons.chevronUp,
                   size: 28,
                   color: ChatColors.ink,
                 ),
@@ -1657,7 +1658,7 @@ class _MarketInputPanelState extends State<MarketInputPanel> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.add_circle_outline_rounded,
+                    AppIcon(WtsIcons.circlePlus,
                         size: 22, color: ChatColors.ink),
                     SizedBox(width: 6),
                     Text(
@@ -1739,10 +1740,10 @@ class _RatingSheetState extends State<_RatingSheet> {
                   IconButton(
                     onPressed: () => setState(() => _stars = i),
                     iconSize: 38,
-                    icon: Icon(
+                    icon: AppIcon(
                       i <= _stars
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
+                          ? WtsIcons.star
+                          : WtsIcons.starBorder,
                       color: ChatColors.amber,
                     ),
                   ),

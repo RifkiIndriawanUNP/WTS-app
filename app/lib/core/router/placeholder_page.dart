@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 import 'package:wts/shared/widgets/glass.dart';
 
@@ -12,7 +13,7 @@ class PlaceholderPage extends StatelessWidget {
   });
 
   final String title;
-  final IconData icon;
+  final WtsIcon icon;
   final String note;
 
   @override

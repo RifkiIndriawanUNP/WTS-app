@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:wts/core/theme/app_theme.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 /// Ruang kosong di bawah daftar agar tidak tertutup navigasi bawah melayang.
 double navSpace(BuildContext context) =>
@@ -160,7 +161,7 @@ class GlassIconButton extends StatelessWidget {
     this.tooltip,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final VoidCallback? onTap;
   final bool active;
   final String? tooltip;
@@ -181,7 +182,7 @@ class GlassIconButton extends StatelessWidget {
         child: SizedBox(
           width: 40,
           height: 40,
-          child: Icon(
+          child: AppIcon(
             icon,
             size: 20,
             color: active ? Colors.white : AppColors.ink,
@@ -218,7 +219,7 @@ class GlassHeader extends StatelessWidget {
         children: [
           if (onBack != null) ...[
             GlassIconButton(
-              icon: Icons.arrow_back_ios_new_rounded,
+              icon: WtsIcons.chevronLeft,
               onTap: onBack,
             ),
             const SizedBox(width: 12),

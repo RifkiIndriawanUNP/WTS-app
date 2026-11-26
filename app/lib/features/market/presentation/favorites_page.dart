@@ -5,6 +5,7 @@ import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 
 const _kTabs = <String>['Semua', 'Dijual', 'Disewakan', 'Gratis'];
@@ -59,7 +60,7 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                       : all.where((p) => p.listingType == type).toList();
                   if (list.isEmpty) {
                     return const EmptyState(
-                      icon: Icons.favorite_border_rounded,
+                      icon: WtsIcons.heart,
                       title: 'Belum ada favorit',
                       message: 'Ketuk ikon hati pada barang untuk menyimpannya.',
                     );
@@ -97,8 +98,8 @@ class _FavoritesPageState extends ConsumerState<FavoritesPage> {
                                 color: MC.red,
                                 borderRadius: BorderRadius.circular(18),
                               ),
-                              child: const Icon(
-                                Icons.delete_outline_rounded,
+                              child: const AppIcon(
+                                WtsIcons.trash,
                                 color: Colors.white,
                                 size: 26,
                               ),
@@ -302,7 +303,7 @@ class _SwipeHint extends StatelessWidget {
         children: [
           const Padding(
             padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.chevron_left_rounded, size: 18, color: MC.blue),
+            child: AppIcon(WtsIcons.chevronLeft, size: 18, color: MC.blue),
           ),
           const SizedBox(width: 6),
           Expanded(

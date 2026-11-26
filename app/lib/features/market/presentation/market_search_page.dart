@@ -6,6 +6,7 @@ import 'package:wts/features/market/presentation/market_filter_sheet.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
 import 'package:wts/features/market/presentation/product_card.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 
 const _kTabs = <String>['Semua', 'Dijual', 'Disewakan', 'Gratis'];
@@ -126,7 +127,7 @@ class _MarketSearchPageState extends ConsumerState<MarketSearchPage> {
       child: Row(
         children: [
           RoundIconButton(
-            icon: Icons.arrow_back_ios_new_rounded,
+            icon: WtsIcons.chevronLeft,
             iconSize: 20,
             size: 48,
             onTap: () => context.pop(),
@@ -143,7 +144,7 @@ class _MarketSearchPageState extends ConsumerState<MarketSearchPage> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search_rounded, size: 22, color: MC.ink),
+                  const AppIcon(WtsIcons.search, size: 22, color: MC.ink),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
@@ -172,8 +173,8 @@ class _MarketSearchPageState extends ConsumerState<MarketSearchPage> {
                       behavior: HitTestBehavior.opaque,
                       child: const Padding(
                         padding: EdgeInsets.only(left: 8),
-                        child: Icon(
-                          Icons.cancel_outlined,
+                        child: AppIcon(
+                          WtsIcons.circleX,
                           size: 24,
                           color: MC.ink,
                         ),
@@ -189,7 +190,7 @@ class _MarketSearchPageState extends ConsumerState<MarketSearchPage> {
               clipBehavior: Clip.none,
               children: [
                 RoundIconButton(
-                  icon: Icons.filter_alt_outlined,
+                  icon: WtsIcons.filter,
                   size: 48,
                   iconSize: 24,
                   onTap: () =>
@@ -281,7 +282,7 @@ class _Idle extends ConsumerWidget {
                         shape: BoxShape.circle,
                       ),
                       child: Center(
-                        child: const Icon(Icons.schedule_rounded, size: 16, color: MC.slate),
+                        child: const AppIcon(WtsIcons.clock, size: 16, color: MC.slate),
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -303,8 +304,8 @@ class _Idle extends ConsumerWidget {
                       behavior: HitTestBehavior.opaque,
                       child: const Padding(
                         padding: EdgeInsets.all(6),
-                        child: Icon(
-                          Icons.close_rounded,
+                        child: AppIcon(
+                          WtsIcons.close,
                           size: 18,
                           color: MC.slateLight,
                         ),
@@ -385,8 +386,8 @@ class _Suggestions extends ConsumerWidget {
                       color: Color(0xFFEFF2F8),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.search_rounded,
+                    child: const AppIcon(
+                      WtsIcons.search,
                       size: 24,
                       color: Color(0xFF5B6B8C),
                     ),
@@ -427,8 +428,8 @@ class _Suggestions extends ConsumerWidget {
                     behavior: HitTestBehavior.opaque,
                     child: const Padding(
                       padding: EdgeInsets.all(8),
-                      child: Icon(
-                        Icons.north_west_rounded,
+                      child: AppIcon(
+                        WtsIcons.arrowUpLeft,
                         size: 20,
                         color: MC.blue,
                       ),
@@ -477,7 +478,7 @@ class _Results extends ConsumerWidget {
             data: (list) {
               if (list.isEmpty) {
                 return const EmptyState(
-                  icon: Icons.search_off_rounded,
+                  icon: WtsIcons.search,
                   title: 'Barang tidak ditemukan',
                   message: 'Coba kata kunci lain atau ubah filter.',
                 );

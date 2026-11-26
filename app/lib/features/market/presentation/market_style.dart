@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:wts/features/market/domain/product.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 /// Warna & komponen kecil khusus tampilan Market (desain baru).
-/// Ikon memakai Material Icons sebagai padanan terdekat ikon desain.
+/// Ikon memakai set SVG desain lewat AppIcon (lihat shared/widgets/app_icons.dart).
 class MC {
   MC._();
 
@@ -155,7 +156,7 @@ class RoundIconButton extends StatelessWidget {
     this.tooltip,
   });
 
-  final IconData icon;
+  final WtsIcon icon;
   final VoidCallback? onTap;
   final double size;
   final double iconSize;
@@ -180,7 +181,7 @@ class RoundIconButton extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Center(child: Icon(icon, size: iconSize, color: color)),
+          child: Center(child: AppIcon(icon, size: iconSize, color: color)),
         ),
       ),
     );
@@ -203,7 +204,7 @@ class MarketTitleBar extends StatelessWidget {
       child: Row(
         children: [
           RoundIconButton(
-            icon: Icons.arrow_back_ios_new_rounded,
+            icon: WtsIcons.chevronLeft,
             iconSize: 20,
             size: 46,
             onTap: onBack,
@@ -217,7 +218,7 @@ class MarketTitleBar extends StatelessWidget {
               style: mt(size: 22, weight: FontWeight.w800, color: MC.ink),
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );
@@ -427,7 +428,7 @@ class ChoicePill extends StatelessWidget {
   final double horizontal;
   final double fontSize;
   final bool shadow;
-  final IconData? icon;
+  final WtsIcon? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -466,7 +467,7 @@ class ChoicePill extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 18, color: fg),
+              AppIcon(icon, size: 18, color: fg),
               const SizedBox(width: 6),
             ],
             Text(
@@ -553,7 +554,7 @@ class PeachPlaceholder extends StatelessWidget {
           width: circle,
           height: circle,
           decoration: BoxDecoration(shape: BoxShape.circle, color: circleColor),
-          child: Icon(Icons.image_outlined, size: iconSize, color: iconColor),
+          child: AppIcon(WtsIcons.image, size: iconSize, color: iconColor),
         ),
       ),
     );

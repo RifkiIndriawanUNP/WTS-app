@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:wts/core/utils/guard.dart';
 import 'package:wts/features/chat/domain/chat_models.dart';
 import 'package:wts/features/chat/presentation/message_widgets.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/dialogs.dart';
 
 /// Aksi cepat bersama untuk DM dan chat market: foto, lokasi, kontak, tautan.
@@ -16,22 +17,22 @@ List<ComposerAction> buildShareActions(
     ...leading,
     ComposerAction(
       label: 'Foto',
-      icon: Icons.image_outlined,
+      icon: WtsIcons.image,
       onTap: () => _sharePhoto(context, send),
     ),
     ComposerAction(
       label: 'Lokasi',
-      icon: Icons.location_on_outlined,
+      icon: WtsIcons.pin,
       onTap: () => _shareLocation(context, send),
     ),
     ComposerAction(
       label: 'Kontak WA',
-      icon: Icons.phone_in_talk_outlined,
+      icon: WtsIcons.phone,
       onTap: () => _shareContact(context, send),
     ),
     ComposerAction(
       label: 'Tautan',
-      icon: Icons.link_rounded,
+      icon: WtsIcons.link,
       onTap: () => _shareLink(context, send),
     ),
   ];

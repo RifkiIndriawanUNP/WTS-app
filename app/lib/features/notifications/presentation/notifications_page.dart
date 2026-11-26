@@ -203,10 +203,12 @@ class _Header extends StatelessWidget {
               child: const SizedBox(
                 width: 52,
                 height: 52,
-                child: Icon(
-                  Icons.settings_outlined,
-                  size: 26,
-                  color: NotifColors.navy,
+                child: Center(
+                  child: NotifSvg(
+                    'settings-black-24-sw2',
+                    size: 26,
+                    color: NotifColors.navy,
+                  ),
                 ),
               ),
             ),
@@ -442,24 +444,26 @@ class _GroupLabel extends StatelessWidget {
   }
 }
 
-(IconData, NotifTone) _visual(NotifType t) {
+/// (nama ikon, warna latar). Jika warna latar null, ikonnya sudah berupa
+/// kotak lengkap (file `*-tile`) sehingga dipakai apa adanya.
+(String, NotifTone?) _visual(NotifType t) {
   switch (t) {
     case NotifType.offer:
-      return (Icons.shopping_bag_outlined, NotifTone.blue);
+      return ('shopping-bag-tile', null);
     case NotifType.reminder:
-      return (Icons.schedule_outlined, NotifTone.orange);
+      return ('clock-tile', null);
     case NotifType.comment:
-      return (Icons.textsms_outlined, NotifTone.purple);
-    case NotifType.message:
-      return (Icons.chat_bubble_outline_rounded, NotifTone.purple);
-    case NotifType.mention:
-      return (Icons.alternate_email_rounded, NotifTone.purple);
+      return ('message-circle-more-tile', null);
     case NotifType.upvote:
-      return (Icons.favorite_border_rounded, NotifTone.red);
-    case NotifType.status:
-      return (Icons.local_shipping_outlined, NotifTone.green);
+      return ('heart-tile', null);
     case NotifType.system:
-      return (Icons.call_outlined, NotifTone.green);
+      return ('shield-check-tile', null);
+    case NotifType.message:
+      return ('message-circle-blue-24', NotifTone.purple);
+    case NotifType.mention:
+      return ('message-circle-more-purple-24', NotifTone.purple);
+    case NotifType.status:
+      return ('map-pin-green', NotifTone.green);
   }
 }
 
@@ -505,7 +509,9 @@ class _NotificationRow extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              NotifIconTile(icon: icon, tone: tone),
+              tone == null
+                  ? NotifSvg(icon, size: 48)
+                  : NotifIconTile(svg: icon, tone: tone),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(

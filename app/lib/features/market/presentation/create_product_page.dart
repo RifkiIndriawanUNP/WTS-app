@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +9,7 @@ import 'package:wts/core/utils/guard.dart';
 import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/features/market/presentation/market_style.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 const int _kMaxPhotos = 5;
 const double _kTile = 95;
@@ -306,7 +306,7 @@ class _CreateProductPageState extends ConsumerState<CreateProductPage> {
                         border: Border.all(color: const Color(0xFFE2E8F0)),
                         boxShadow: softShadow(.05, 10),
                       ),
-                      child: const Icon(Icons.add_rounded, size: 20, color: MC.text),
+                      child: const AppIcon(WtsIcons.plus, size: 20, color: MC.text),
                     ),
                   ),
                 ],
@@ -388,7 +388,7 @@ class _CreateProductPageState extends ConsumerState<CreateProductPage> {
               child: const CircleAvatar(
                 radius: 11,
                 backgroundColor: Colors.black54,
-                child: Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                child: AppIcon(WtsIcons.close, size: 14, color: Colors.white),
               ),
             ),
           ),
@@ -588,7 +588,7 @@ class _EmptyCover extends StatelessWidget {
           color: MC.peach,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.image_outlined, size: 24, color: MC.orangeDeep),
+        child: const AppIcon(WtsIcons.image, size: 24, color: MC.orangeDeep),
       ),
     );
   }
@@ -614,7 +614,7 @@ class _AddTile extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.add_rounded, size: 30, color: MC.blue),
+                const AppIcon(WtsIcons.plus, size: 30, color: MC.blue),
                 Text(
                   'Tambah',
                   style: mt(size: 12, weight: FontWeight.w700, color: MC.blue),
@@ -700,7 +700,7 @@ class _UnitDropdown extends StatelessWidget {
                 style: mt(size: 15, weight: FontWeight.w700, color: MC.ink),
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: MC.slate),
+            const AppIcon(WtsIcons.chevronDown, size: 20, color: MC.slate),
           ],
         ),
       ),

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:wts/core/router/main_shell.dart';
@@ -7,6 +6,7 @@ import 'package:wts/core/router/placeholder_page.dart';
 import 'package:wts/features/chat/chat_routes.dart';
 import 'package:wts/features/market/market_routes.dart';
 import 'package:wts/features/notifications/notifications_routes.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 
 /// Router 5 tab: Home, Market, Chat, Notifikasi, Profil.
 /// Home dan Profil masih placeholder (dikerjakan anggota tim lain).
@@ -25,7 +25,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/home',
                 builder: (context, state) => const PlaceholderPage(
                   title: 'Home',
-                  icon: Icons.home_rounded,
+                  icon: WtsIcons.home,
                   note: 'Linimasa dikerjakan anggota tim lain.',
                 ),
               ),
@@ -40,7 +40,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: '/profile',
                 builder: (context, state) => const PlaceholderPage(
                   title: 'Profil',
-                  icon: Icons.person_rounded,
+                  icon: WtsIcons.user,
                   note: 'Profil dikerjakan anggota tim lain.',
                 ),
               ),

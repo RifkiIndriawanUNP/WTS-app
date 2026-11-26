@@ -17,6 +17,7 @@ import 'package:wts/features/chat/presentation/share_flows.dart';
 import 'package:wts/features/market/domain/product.dart';
 import 'package:wts/features/market/presentation/market_providers.dart';
 import 'package:wts/shared/models/app_user.dart';
+import 'package:wts/shared/widgets/app_icons.dart';
 import 'package:wts/shared/widgets/common_widgets.dart';
 import 'package:wts/shared/widgets/dialogs.dart';
 
@@ -329,7 +330,7 @@ class _MarketChatRoomPageState extends ConsumerState<MarketChatRoomPage> {
           if (canOffer)
             ComposerAction(
               label: 'Tawar',
-              icon: Icons.local_offer_outlined,
+              icon: WtsIcons.tag,
               onTap: () => _newOffer(chat, peer, iAmSeller),
             ),
         ],
@@ -368,7 +369,7 @@ class _MarketChatRoomPageState extends ConsumerState<MarketChatRoomPage> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: ChatCircleButton(
-                        icon: Icons.chevron_left_rounded,
+                        icon: WtsIcons.chevronLeft,
                         iconSize: 30,
                         onTap: context.pop,
                       ),
@@ -376,7 +377,7 @@ class _MarketChatRoomPageState extends ConsumerState<MarketChatRoomPage> {
                   ),
                   const Expanded(
                     child: EmptyState(
-                      icon: Icons.chat_bubble_outline_rounded,
+                      icon: WtsIcons.chat,
                       title: 'Chat tidak tersedia',
                     ),
                   ),
@@ -450,7 +451,7 @@ class _MarketChatRoomPageState extends ConsumerState<MarketChatRoomPage> {
               child: Text('Simulasi: ${a.name}'),
             ),
       ],
-      child: const ChatCircle(icon: Icons.more_vert_rounded),
+      child: const ChatCircle(icon: WtsIcons.moreVert),
     );
   }
 
@@ -556,7 +557,7 @@ class _MarketChatRoomPageState extends ConsumerState<MarketChatRoomPage> {
               } else if (actor != me.id && !chat.arrived.containsKey(me.id)) {
                 extra.add(
                   StatusActionCard(
-                    icon: Icons.location_on_outlined,
+                    icon: WtsIcons.pin,
                     title: '$peerName sudah di titik temu',
                     message: 'Temui dia di $place.',
                     primaryLabel: 'Saya sudah sampai',
@@ -566,7 +567,7 @@ class _MarketChatRoomPageState extends ConsumerState<MarketChatRoomPage> {
               } else if (chat.bothArrived && m.id == lastArrivedMsgId) {
                 extra.add(
                   StatusActionCard(
-                    icon: Icons.handshake_outlined,
+                    icon: WtsIcons.handshake,
                     title: 'Kalian sudah bertemu',
                     message: iAmSeller
                         ? 'Konfirmasi setelah pembayaran kamu terima.'
