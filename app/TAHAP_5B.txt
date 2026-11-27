@@ -1,0 +1,51 @@
+TAHAP 5B — FILTER DI HOME
+==========================
+(Pelengkap 5A pencarian. Dengan ini Tahap 5 selesai.)
+
+ISI TAHAP INI
+- Tombol Filter (ikon setelan di sebelah kolom cari, Home) membuka lembar "Filter postingan":
+  * Waktu terbit: Semua / 24 jam / 7 hari / 30 hari
+  * Hanya yang ada gambar
+  * Sembunyikan yang sudah selesai (ditandai "Selesai" oleh penulis)
+  * Reset (mengosongkan pilihan) dan Terapkan (menampilkan jumlah filter aktif)
+- Angka biru kecil di tombol Filter = jumlah filter aktif.
+- Filter bekerja bersama chip tag dan urutan yang sudah ada (tag + urutan + filter digabung).
+- Bila hasil kosong: "Tidak ada postingan yang cocok" + tombol "Reset filter" (menghapus tag dan filter).
+- Filter bertahan selama aplikasi dibuka (tidak disimpan setelah ditutup).
+
+FILE BARU / BERUBAH (semua di app/)
+Baru:
+- lib/features/timeline/domain/post_filter.dart
+- lib/features/timeline/presentation/widgets/post_filter_sheet.dart
+- test/filter_test.dart
+Berubah:
+- timeline/data/post_repository.dart + fake_post_repository.dart  (fetchFeed + parameter filter)
+- timeline/presentation/providers/feed_providers.dart              (FeedState.filter, setFilter, resetFilters)
+- timeline/presentation/screens/home_tab.dart                      (tombol Filter + penanda)
+- timeline/presentation/widgets/feed_states.dart                   (teks keadaan kosong)
+
+CARA PASANG (zip lengkap; timpa folder app/)
+  flutter pub get
+  dart format lib test
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+CHECKLIST TES MANUAL
+1. Home -> ikon Filter: lembar terbuka, Reset nonaktif selama belum ada pilihan.
+2. Pilih "24 jam" -> Terapkan: hanya postingan baru; penanda "1" muncul di tombol Filter.
+3. Nyalakan "Hanya yang ada gambar" -> penanda jadi "2"; semua kartu punya gambar.
+4. Nyalakan "Sembunyikan yang sudah selesai": postingan bertanda Selesai hilang
+   (tandai satu postinganmu Selesai dulu untuk melihat bedanya).
+5. Gabungkan dengan chip tag (mis. Organisasi) dan ganti urutan: hasil mengikuti semuanya.
+6. Buat kombinasi yang tidak ada hasilnya -> pesan kosong + "Reset filter" -> semua kembali.
+7. Buka Filter lalu ketuk di luar lembar: tidak ada perubahan.
+8. Tarik untuk muat ulang dan gulir ke bawah: filter tetap berlaku pada halaman berikutnya.
+
+CATATAN UNTUK TIM BACKEND (A)
+- Tambahkan parameter filter pada query posts_public:
+  created_at >= now() - interval (24 jam/7 hari/30 hari), status <> 'closed',
+  dan kolom has_images (mis. kolom turunan image_count > 0) pada view.
+- Filter dipakai bersama tag, urutan, dan kursor paginasi; pastikan indeks mendukung
+  (created_at, status).
+- Pencarian (5A) belum memakai filter; bila ingin sama, teruskan PostFilter ke layar pencarian.

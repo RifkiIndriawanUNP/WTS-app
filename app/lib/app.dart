@@ -53,7 +53,10 @@ class _SmokeTestScreenState extends State<SmokeTestScreen> {
     }
 
     try {
-      final tags = await _db.from('tags').select('name').eq('scope', 'timeline');
+      final tags = await _db
+          .from('tags')
+          .select('name')
+          .eq('scope', 'timeline');
       _add('tag linimasa: ${tags.length} (harus 11)');
       final posts = await _db.from('posts_public').select('id').limit(1);
       _add('posts_public: OK (${posts.length} baris)');

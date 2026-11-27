@@ -1,0 +1,62 @@
+TAHAP 4A — PROFIL: POSTINGAN, SAVED, PROFIL ORANG LAIN
+=======================================================
+
+ISI TAHAP INI (mengikuti gambaran desain profil)
+- Tab Profil (nomor 5) sekarang layar asli, menggantikan stub:
+  avatar besar, @username, "Bergabung <tanggal>", tiga aksi (Set Photo, Edit Info, Settings),
+  baris Jurusan dan Bio, lalu tab: Postingan | Market | Saved.
+- Postingan: daftar postinganmu (termasuk yang anonim; anonim hanya terlihat olehmu),
+  terbaru dulu, paginasi saat digulir, tarik untuk muat ulang.
+  Kartunya sama dengan Home: upvote/downvote, simpan, bagikan, menu (ubah/selesai/hapus), buka detail.
+- Saved: postingan yang kamu simpan, simpanan terbaru dulu. Batal simpan = hilang dari daftar.
+- Market: keterangan sementara (isi menyusul bersama fitur Market).
+- Profil orang lain: ketuk avatar/nama penulis di Home, Detail, atau daftar profil.
+  Tampil tanpa aksi ubah dan tanpa Saved; hanya postingan yang tidak anonim.
+  Ikon bendera di atas = Laporkan pengguna (memakai sheet laporan yang sama).
+- Settings: sementara hanya "Keluar" (dengan konfirmasi). Set Photo / Edit Info menampilkan
+  "hadir di Tahap 4B". Pengaturan akun lengkap, ubah profil, ganti foto, hapus akun = Tahap 4B.
+
+FILE BARU / BERUBAH (semua di app/)
+Baru:
+- lib/features/profile/domain/public_profile.dart
+- lib/features/profile/data/{profile_repository,fake_profile_repository}.dart
+- lib/features/profile/presentation/providers/profile_providers.dart
+- lib/features/profile/presentation/screens/profile_screen.dart
+- lib/features/profile/presentation/widgets/{profile_header,profile_tab_bar}.dart
+- lib/features/profile/presentation/profile_navigation.dart   (openUserProfile)
+- lib/features/profile/profile_routes.dart                    (route /u/:username untuk A)
+- test/profile_test.dart
+Berubah:
+- timeline/data/post_repository.dart + fake_post_repository.dart  (+fetchByAuthor, +fetchSaved)
+- timeline/presentation/widgets/post_card.dart                    (+onAuthorTap)
+- timeline/presentation/screens/home_tab.dart, post_detail_screen.dart (ketuk penulis -> profil)
+- lib/main_preview.dart                                           (tab 5 = ProfileScreen)
+
+CARA PASANG
+Timpa folder app/ ke app/ repo, lalu (dari folder app):
+  flutter pub get
+  dart format lib test
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart      (atau -d <id HP> -t lib/main_preview.dart)
+
+CHECKLIST TES MANUAL
+1. Masuk (OTP 123456), buka tab Profil: header sesuai data akunmu; Jurusan "Belum diisi" bila kosong.
+2. Tab Postingan menampilkan postingan milikmu. Buat postingan baru dari Home -> muncul di profil
+   (tarik layar ke bawah untuk memuat ulang).
+3. Postingan anonim milikmu tampil di profilmu sebagai "Anonim", tapi tidak di profil orang lain.
+4. Vote pada postingan sendiri -> pesan tidak bisa. Hapus/selesaikan lewat titik tiga -> daftar ikut berubah.
+5. Simpan postingan di Home/Profil -> tab Saved berisi; batal simpan dari Saved -> hilang dari daftar.
+6. Tab Market -> keterangan "Belum ada produk".
+7. Di Home ketuk avatar/nama penulis (mis. dina_kamila) -> profilnya terbuka dengan tombol kembali.
+   Tidak ada Set Photo/Edit Info/Saved. Ketuk postingan di sana -> detail terbuka, kembali -> profil tetap.
+8. Postingan anonim: ketuk nama "Anonim" -> tidak terjadi apa-apa.
+9. Ikon bendera di profil orang lain -> pilih alasan -> terkirim.
+10. Settings -> Keluar -> konfirmasi -> kembali ke layar login.
+11. Edit Info / Set Photo -> muncul keterangan "hadir di Tahap 4B".
+
+CATATAN UNTUK TIM BACKEND (A)
+- Perlu view profiles_public (username, prodi_name, bio, avatar_url, created_at) tanpa email/status.
+- fetchByAuthor: dari posts_public, filter author_username; anonim tidak ikut untuk orang lain.
+- fetchSaved: join saved_posts -> posts_public urut saved_at desc, hanya yang belum kedaluwarsa.
+- Menyembunyikan konten pengguna yang disuspend/banned di profil: ikut aturan RLS moderasi (Tahap 6).

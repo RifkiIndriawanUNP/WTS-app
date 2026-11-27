@@ -1,0 +1,67 @@
+TAHAP 6A - ANTREAN LAPORAN MODERATOR
+=====================================
+
+ISI TAHAP INI
+- Moderator/admin bisa membuka "Antrean laporan" (Pengaturan > Moderasi).
+- Laporan dikelompokkan per konten (satu kasus = semua laporan satu konten).
+- Tab Menunggu (dengan jumlah) | Selesai; filter jenis: Semua, Postingan,
+  Komentar, Barang, Akun, Pesan.
+- Urutan antrean: prioritas tertinggi dulu (jumlah pelapor + alasan berat
+  [penipuan, SARA, pelecehan, dewasa, privasi] + auto-sembunyi).
+- Kartu kasus: jenis, cuplikan isi, penulis (atau "Anonim"), jumlah laporan,
+  alasan terbanyak, lencana Prioritas / Disembunyikan otomatis / status.
+- Detail kasus: salinan konten, ringkasan alasan (bar), catatan pelapor tanpa
+  identitas, riwayat pelanggaran terlapor, info penanganan.
+- Aturan auto-sembunyi (di fake): >= 3 pelapor unik, atau >= 2 untuk
+  penipuan barang.
+- Laporan yang dikirim lewat tombol Laporkan di app ikut masuk antrean
+  (laporan ke konten yang sama menambah hitungan, bukan kasus baru).
+- Pengguna biasa tidak punya menu ini; repo menolak (kode forbidden).
+- TINDAKAN (abaikan, sembunyikan, hapus, peringatan, suspend, ban, buka
+  identitas anonim, banding) = Tahap 6B. Di detail masih ada keterangan.
+
+FILE BARU
+- moderation/domain/report_case.dart (ReportStatus, ReportedContent, ReportCase)
+- moderation/presentation/screens/report_queue_screen.dart, report_detail_screen.dart
+- moderation/presentation/widgets/report_case_card.dart
+- moderation/moderation_routes.dart  (/moderation, /moderation/:id)
+- test/moderation_queue_test.dart
+FILE DIUBAH
+- moderation/data/report_repository.dart (+fetchQueue, getCase, pendingCount)
+- moderation/data/fake_report_repository.dart (+8 contoh kasus, cek peran)
+- moderation/presentation/providers/report_providers.dart
+- profile/presentation/screens/settings_screen.dart (menu Moderasi)
+
+CARA UJI (dari folder app)
+  flutter run -d edge -t lib/main_preview.dart
+1. Masuk dengan mod@nusaputra.ac.id (OTP 123456; isi username bila diminta).
+   Buka Profil > Pengaturan > Moderasi > Antrean laporan.
+   Harapan: lencana merah di menu; tab "Menunggu (6)"; kasus teratas
+   "DIJUAL cepat!!" (Prioritas + Disembunyikan otomatis).
+2. Ketuk filter Komentar / Barang / Akun / Pesan -> daftar menyaring; Semua
+   mengembalikan. Tarik ke bawah = muat ulang.
+3. Tab Selesai: 2 kasus (Ditindak, Diabaikan).
+4. Ketuk kasus -> detail lengkap (anonim: ikon gembok; pesan: percakapan
+   sebelumnya; barang: harga/kondisi).
+5. Keluar, masuk dengan akun biasa: menu Moderasi TIDAK ada.
+6. (Opsional) Dengan akun moderator, laporkan sebuah postingan di Home lalu
+   cek antrean: kasus baru muncul. Laporkan lagi konten yang sama dari
+   postingan lain tidak mungkin (satu pelapor satu kali).
+7. admin@nusaputra.ac.id juga bisa membuka antrean.
+
+CI (dari folder app)
+  dart format lib test
+  flutter analyze --fatal-infos
+  flutter test
+Tes baru: test/moderation_queue_test.dart (repo + layar + entri Pengaturan).
+
+CATATAN UNTUK BACKEND (A)
+- Antrean = view/RPC khusus moderator di atas tabel reports, dikelompokkan
+  per (target_type, target_id); RLS: hanya role moderator/admin.
+- Catatan pelapor tidak boleh membawa reporter_id ke klien.
+- Snapshot konten dibuat trigger saat laporan masuk (bertahan walau konten
+  dihapus), snapshot pesan = 20 pesan terakhir, dihapus 30 hari setelah selesai.
+- Auto-sembunyi dilakukan trigger, bukan klien.
+- priorViolations dari tabel user_strikes.
+- Jangan kirim author_id untuk konten anonim; pembukaan identitas = fungsi
+  admin + audit_logs (6B).

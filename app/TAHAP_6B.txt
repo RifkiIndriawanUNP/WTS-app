@@ -1,0 +1,89 @@
+TAHAP 6B - TINDAKAN MODERASI, IDENTITAS ANONIM, BANDING
+========================================================
+
+ISI TAHAP INI
+1. Tindakan pada kasus menunggu (layar Detail laporan > Tindakan):
+   - Moderator & admin : Abaikan laporan, Sembunyikan konten, Hapus konten,
+                         Beri peringatan.
+   - Khusus admin      : Suspend 3 / 7 / 30 hari, Blokir permanen
+                         (untuk moderator tampil terkunci "Khusus admin").
+   - Semua tindakan selain Abaikan wajib alasan (5-300 karakter).
+   - Efek: status kasus jadi Ditindak / Diabaikan, pindah ke tab Selesai,
+     jumlah menunggu berkurang, tercatat siapa & kapan + alasan.
+   - Sembunyikan / Hapus / Suspend / Blokir: postingan hilang dari Home
+     (repo palsu). Abaikan pada kasus yang sempat disembunyikan otomatis:
+     postingan tampil lagi. Peringatan: konten tetap tampil.
+   - Hapus, Peringatan, Suspend, Blokir menambah hitungan pelanggaran
+     pemilik konten ("Riwayat terlapor").
+   - Kasus yang sudah ditangani tidak bisa ditindak lagi.
+2. Buka identitas penulis anonim (khusus admin): tombol "Buka identitas"
+   di detail kasus anonim, dengan konfirmasi; tercatat di audit log.
+3. Audit log: setiap tindakan dan pembukaan identitas dicatat (repo:
+   fetchAuditLog, khusus admin; belum ada layarnya, dipakai tes dan backend).
+4. Banding:
+   - Pengguna ditangguhkan/diblokir: layar akun dibatasi punya tombol
+     "Ajukan banding" (10-500 karakter, satu kali).
+   - Antrean laporan punya chip ketiga "Banding (n)": daftar menunggu dan
+     sudah diputuskan. Moderator hanya membaca; admin menerima/menolak
+     dengan jawaban opsional.
+
+FILE BARU
+- moderation/domain/moderation_action.dart (ModerationAction, Appeal, AuditEntry, aturan)
+- moderation/presentation/widgets/moderation_action_sheet.dart, appeals_view.dart
+- test/moderation_actions_test.dart
+FILE DIUBAH
+- moderation/domain/report_case.dart (action, actionNote, handled())
+- moderation/data/report_repository.dart, fake_report_repository.dart
+  (moderate, revealAuthor, fetchAuditLog, submitAppeal, fetchAppeals, decideAppeal)
+- moderation/presentation/providers/report_providers.dart (appealsProvider,
+  hubungan ke repo postingan palsu)
+- moderation/presentation/screens/report_detail_screen.dart, report_queue_screen.dart
+- auth/presentation/screens/account_restricted_screen.dart (tombol banding)
+- timeline/data/fake_post_repository.dart (setModerationHidden)
+
+CARA UJI (dari folder app)
+  flutter run -d edge -t lib/main_preview.dart
+A. Moderator (mod@nusaputra.ac.id, OTP 123456)
+ 1. Profil > Pengaturan > Antrean laporan > ketuk "DIJUAL cepat!!".
+    Tindakan: Suspend/Blokir terkunci "Khusus admin".
+ 2. Ketuk "Sembunyikan konten": tombol mati sampai alasan diisi; tekan.
+    Snackbar "Tindakan dicatat"; panel berganti "Penanganan" (tindakan,
+    alasan, oleh siapa). Kembali: kasus hilang dari Menunggu, ada di Selesai,
+    lencana di Pengaturan berkurang. Buka Home: postingan spam itu hilang
+    (keluar-masuk tab Home bila belum segar).
+ 3. Kasus komentar "tidak pantas kuliah": coba "Beri peringatan" ->
+    "Riwayat terlapor" jadi 3 kali.
+ 4. Kasus anonim (privasi): tidak ada tombol Buka identitas.
+ 5. Chip Banding: 1 banding contoh, tidak bisa diputuskan (info "Hanya admin").
+B. Admin (admin@nusaputra.ac.id)
+ 6. Kasus anonim: "Buka identitas" -> konfirmasi -> "@budi_santoso".
+ 7. Kasus barang penipuan: Suspend 7 hari / Blokir terbuka; isi alasan.
+ 8. Chip Banding > ketuk banding > Terima / Tolak (+jawaban): status pindah
+    ke "Sudah diputuskan".
+C. Pengguna dibatasi
+ 9. Keluar, masuk dengan banned@nusaputra.ac.id (OTP 123456): layar
+    "Akunmu diblokir" > Ajukan banding > isi >= 10 karakter > Kirim.
+    Tombol jadi "Banding sudah diajukan" (tidak bisa kedua kali).
+    Masuk lagi sebagai admin: banding itu muncul di chip Banding.
+    (Catatan: repo palsu belum mencabut pembatasan akun saat banding
+    diterima; itu dikerjakan backend.)
+
+CI (dari folder app)
+  dart format lib test
+  flutter analyze --fatal-infos
+  flutter test
+
+CATATAN UNTUK BACKEND (A)
+- RPC moderate_action (security definer): cek peran (suspend/ban = admin),
+  ubah reports.status/action/handled_by, set posts/products/comments.status
+  = hidden/deleted, tambah user_strikes, set profiles.status +
+  suspended_until / ban + simpan hash email di banned_emails, tulis
+  audit_logs, kirim notifikasi alasan ke pemilik konten dan
+  "laporan ditindaklanjuti" ke pelapor (tanpa detail).
+- RPC reveal_anonymous_author: admin saja, wajib menulis audit_logs.
+  Klien tidak pernah menerima author_id konten anonim.
+- Trigger end_suspension (cron per jam) memulihkan akun.
+- appeals: 1 per user (unik user_id); diterima = cabut suspend/ban, hapus
+  strike terkait, notifikasi. Pengajuan dari layar akun dibatasi perlu
+  RPC yang bisa dipanggil tanpa sesi penuh (mis. lewat token OTP terverifikasi).
+- Reaksi layar Home terhadap konten hidden: filter status di query feed.

@@ -1,0 +1,24 @@
+WTS v2 — DAFTAR TAHAP (bagian B: login, linimasa [tampilan], profil, moderasi)
+===========================================================================
+
+CARA JALAN (dari folder app/)
+  flutter pub get
+  dart format .
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+TAHAP
+  1   Fondasi + login ............................ SELESAI (zip ini = perbaikan lint + main_preview)
+  2A  Linimasa: model, repo palsu, 11 tag, kartu postingan, daftar + skeleton/kosong/error
+  2B  Linimasa: vote (tanpa vote konten sendiri), simpan, sortir (hot/top/komentar/segera berakhir), tombol tulis
+  3A  Buat/ubah postingan (1-2 tag, caption<=2000, <=5 gambar, anonim, durasi 1/3/7/14/30 hari, kuesioner extra)
+  3B  Detail postingan + komentar (3 tingkat, <=1000, edit 5 mnt, vote, laporkan, link)
+  4A  Profil: header, tab postingan/disimpan (features/saved), profil orang lain
+  4B  Edit profil (username 1x/30 hari, prodi, bio, foto) + Pengaturan + hapus akun
+  5   Pencarian & filter (tag, sortir) — milik C, saya bantu di sisi tampilan
+  6A  Moderasi: laporkan (alasan enum) + antrean laporan (moderator)
+  6B  Moderasi: aksi (abaikan/sembunyikan/hapus/peringatan/tangguhkan/blokir), admin buka penulis anonim, banding
+
+Karena kamu bekerja lokal tanpa push/pull, semua tahap langsung ditaruh di
+app/lib/features/... dan dicoba lewat main_preview.dart milikmu.

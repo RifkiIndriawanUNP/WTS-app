@@ -1,0 +1,72 @@
+WTS v2 — TAHAP 1: FONDASI TAMPILAN + LOGIN (bagian B)
+=====================================================
+
+ISI ZIP (timpa/salin ke folder app/ di repo)
+  assets/images/logo_wts.png
+  lib/core/constants/app_constants.dart
+  lib/core/storage/app_prefs.dart
+  lib/core/theme/{app_colors,app_theme}.dart
+  lib/core/utils/{format,formatters,links,validators}.dart
+  lib/shared/widgets/*            (komponen kaca: GlassScaffold, GlassButton, dst.)
+  lib/features/auth/**            (data, domain, presentation, preview, auth_routes.dart)
+  lib/features/profile/domain/prodi.dart   (daftar prodi PALSU, sementara)
+  test/*
+
+CATATAN PENTING: folder core/ dan shared/ milik A. Semua file di sana
+(tema, widget kaca, utils) harus masuk lewat Pull Request berlabel `shared`,
+bukan dicommit langsung. Fitur login (features/auth) milik kamu.
+
+1) PUBSPEC (beri tahu grup dulu, jangan diam-diam)
+  dependencies:
+    google_fonts: ^6.2.1
+    shared_preferences: ^2.3.2   # hanya untuk mode palsu/lokal
+    image_picker: ^1.1.2         # foto profil
+    flutter_localizations: {sdk: flutter}
+  flutter:
+    assets:
+      - assets/images/
+  (Samakan nomor versi dengan hasil `flutter pub add`.)
+
+2) app.dart (milik A) sebaiknya:
+  theme: AppTheme.light(), themeMode: ThemeMode.light,
+  locale id_ID + delegates localizations,
+  builder: (c, child) => LiquidBackground(child: child ?? SizedBox.shrink())
+  routes: [...authRoutes, ...]   // dari features/auth/auth_routes.dart
+  Redirect: tanpa sesi -> AuthRoutes.login; akun suspended/banned -> AuthRoutes.restricted.
+  AuthRoutes.home ('/home') dipetakan A ke tab Home.
+
+3) CARA COBA (tanpa Docker)
+  cd app
+  flutter pub get
+  flutter run -d edge -t lib/features/auth/preview/auth_preview.dart
+  OTP simulasi: 123456
+  Akun uji: banned@ / suspended@ / admin@ / mod@ nusaputra.ac.id
+
+4) SEBELUM COMMIT (CI menolak jika gagal)
+  dart format .
+  flutter analyze --fatal-infos
+  flutter test
+  (Kode ini ditulis tanpa bisa dijalankan; jika ada peringatan analyze,
+   kirim pesannya ke saya.)
+
+5) KEPUTUSAN YANG MENGIKUTI KONTRAK BACKEND
+  - Tidak ada nama tampilan/angkatan/jurusan teks bebas: hanya username
+    (^[a-z0-9_]{3,20}$, ganti 1x/30 hari), prodi (pilih dari tabel prodi,
+    opsional), bio <=160, foto (opsional).
+  - Wajib centang Syarat & Aturan Komunitas saat daftar.
+  - Layar akun dibatasi: suspended (sementara) & banned (permanen).
+  - Tombol "Lanjut dengan Google" hanya SIMULASI lokal; kontrak backend
+    hanya email OTP. Hapus saat integrasi Supabase.
+  - Foto avatar: server membatasi 256 KB, jadi saat integrasi kompres dulu
+    (flutter_image_compress) dan unggah dengan nama file UUID acak.
+  - Teks legal di legal_texts.dart masih DRAF.
+
+6) SAAT INTEGRASI SUPABASE (nanti)
+  Buat SupabaseAuthRepository di features/auth/data yang mengimplementasikan
+  AuthRepository (signInWithOTP / verifyOTP, baca profiles, RPC
+  delete_my_account, touch_last_login), bungkus error dengan mapError, lalu
+  ganti isi authRepositoryProvider. Layar tidak perlu diubah.
+
+7) TAHAP BERIKUTNYA
+  2A/2B Linimasa (feed, kartu, vote, simpan), 3A/3B buat postingan + detail &
+  komentar, 4A/4B profil & pengaturan, 5 pencarian/filter, 6 moderasi.

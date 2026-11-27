@@ -1,0 +1,51 @@
+TAHAP 5A — PENCARIAN POSTINGAN LINIMASA
+========================================
+(Tahap 5 dibagi dua: 5A pencarian = ini, 5B filter di Home = berikutnya.)
+
+ISI TAHAP INI
+- Ketuk kolom "Cari kisi-kisi, kuesioner, info kampus" di Home -> layar Pencarian.
+- Mencari di ISI postingan dan NAMA tag; semua kata harus cocok, huruf besar/kecil diabaikan.
+- Hasil muncul otomatis 0,4 detik setelah berhenti mengetik (minimal 2 huruf), atau langsung
+  saat menekan tombol cari di keyboard.
+- Kolom kosong menampilkan: Pencarian terakhir (maks 8, disimpan di perangkat, bisa hapus satu/semua)
+  dan pintasan kategori (ketuk tag = cari tag itu).
+- Hasil: kartu yang sama dengan Home (vote, simpan, bagikan, menu, buka detail, ketuk penulis -> profil),
+  urutan bisa diganti (Terbaru/Terpopuler/Teratas/...), paginasi saat digulir.
+- Keadaan: terlalu pendek, memuat, tidak ada hasil, gagal (Coba lagi).
+- Tombol Filter (ikon setelan) di Home masih "hadir di Tahap 5B".
+
+FILE BARU / BERUBAH (semua di app/)
+Baru:
+- lib/features/timeline/data/search_history_store.dart
+- lib/features/timeline/presentation/screens/post_search_screen.dart
+- test/search_test.dart
+Berubah:
+- timeline/data/post_repository.dart + fake_post_repository.dart  (fetchFeed + parameter query)
+- timeline/presentation/screens/home_tab.dart                     (kolom cari membuka layar pencarian)
+- timeline/timeline_routes.dart                                   (+ TimelineRoutes.search '/search')
+
+CARA PASANG (zip lengkap; timpa folder app/)
+  flutter pub get
+  dart format lib test
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+CHECKLIST TES MANUAL
+1. Home -> ketuk kolom cari: layar baru, keyboard terbuka, ada kategori.
+2. Ketik "jas lab": hasil muncul tanpa menekan apa pun (postingan jas lab ukuran M).
+3. Ketik "a": muncul "Ketik minimal 2 huruf". Ketik "zzzxyz": "Tidak ada hasil untuk ...".
+4. Ketik "KUESIONER" (huruf besar) -> tetap ketemu. Ketik "organisasi" -> postingan bertag Organisasi ikut.
+5. Tekan tombol cari di keyboard -> kata tersimpan; keluar lalu masuk lagi: muncul di "Pencarian terakhir".
+6. Ketuk riwayat -> mencari lagi. X pada baris = hapus satu; "Hapus semua" = kosong.
+7. Ketuk chip kategori -> hasil tag itu.
+8. Pada hasil: upvote, simpan, buka detail, kembali -> angka ikut berubah; ketuk penulis -> profil.
+9. Ikon urutan di atas hasil -> ganti urutan -> daftar berubah.
+10. Tombol X di kolom cari menghapus teks dan kembali ke riwayat/kategori.
+
+CATATAN UNTUK TIM BACKEND (A)
+- fetchFeed(query): gunakan full-text search Postgres (to_tsvector('indonesian', caption) + GIN index)
+  atau ilike '%kata%' untuk skala 1000 pengguna; cocokkan juga nama tag. Batasi panjang query (<=100)
+  dan lewati RLS posts_public. Jangan mencari postingan anonim berdasarkan nama penulis.
+- Riwayat pencarian hanya di perangkat (SharedPreferences), tidak dikirim ke server.
+- Belum ada penyorotan kata kunci pada kartu (bisa ditambah nanti).

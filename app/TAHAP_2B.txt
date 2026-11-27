@@ -1,0 +1,32 @@
+WTS v2 — TAHAP 2B: AKSI LINIMASA + REVISI HOME
+==============================================
+
+REVISI HOME
+  - Chip tag (Semua, Kuesioner, Organisasi, Tugas, WTB, ...) tidak terpotong lagi (tinggi baris 62).
+  - Tombol "+" diturunkan, tepat di atas bilah navigasi (konstanta _fabBottom = 84 di home_tab.dart;
+    ubah angkanya bila navbar asli A tingginya berbeda).
+
+FITUR BARU
+  - Urutkan: Terbaru / Terpopuler / Teratas / Paling banyak komentar / Segera berakhir
+  - Menu titik tiga: pemilik = Tandai selesai, Hapus; pengguna lain = Laporkan
+  - Bagikan: menyalin teks + tautan wts://post/<id> ke papan klip (share sheet sistem menyusul)
+  - Penampil gambar layar penuh (geser, cubit untuk zoom, penanda 1/N)
+  - Form Laporkan (modul moderasi): 9 alasan sesuai backend + catatan <=500, laporan ganda ditolak
+
+FILE BARU/BERUBAH (timpa ke app/)
+  lib/features/moderation/**                        (BARU: domain, data palsu, provider, report_sheet)
+  lib/features/timeline/data/{post_repository,fake_post_repository}.dart   (+ deletePost, closePost)
+  lib/features/timeline/presentation/providers/feed_providers.dart
+  lib/features/timeline/presentation/screens/home_tab.dart
+  lib/features/timeline/presentation/widgets/{post_menu_sheet,image_viewer,post_share}.dart  (BARU)
+  test/timeline_actions_test.dart                   (BARU)
+
+PUBSPEC: tidak ada paket baru.
+
+CARA COBA (dari app/)
+  dart format .  ;  flutter analyze --fatal-infos  ;  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+  Coba: postingan p11 ("Tips lulus praktikum...") milikmu -> menu titik tiga -> Tandai selesai / Hapus.
+        Postingan lain -> titik tiga -> Laporkan (laporkan dua kali = ditolak).
+
+TAHAP BERIKUT: 3A buat postingan (tombol +) -> 3B detail & komentar -> 4A/4B profil -> 5 cari/filter -> 6 moderasi (antrean).

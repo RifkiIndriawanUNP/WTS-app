@@ -1,0 +1,55 @@
+TAHAP 3B-2 — KOMENTAR: TULIS, BALAS, UBAH, HAPUS, LAPORKAN
+============================================================
+
+ISI TAHAP INI
+- Kolom tulis komentar asli di bawah layar detail (menggantikan stub "hadir di Tahap 3B-2").
+- Balas komentar (maks 3 tingkat; tombol Balas hilang di tingkat 3).
+- Ubah komentar milik sendiri (hanya 5 menit pertama), tandai "Diedit".
+- Hapus komentar milik sendiri: bila punya balasan menjadi "[komentar dihapus]",
+  bila tidak punya balasan hilang dan jumlah komentar berkurang.
+- Laporkan komentar orang lain (memakai sheet laporan yang sama dengan postingan).
+- Jumlah komentar di detail dan di daftar Home ikut berubah.
+- Postingan "Selesai": kolom diganti "Komentar ditutup", tombol Balas hilang.
+- Penanda OP; bila OP anonim, namanya tetap "Anonim".
+
+FILE BARU / BERUBAH (semua di app/)
+- lib/features/comments/presentation/widgets/comment_composer.dart   (baru)
+- lib/features/comments/presentation/widgets/comment_menu_sheet.dart (baru)
+- lib/features/comments/presentation/widgets/comment_tree.dart       (jadi controlled: expanded + onExpand)
+- lib/features/comments/data/comment_repository.dart                 (+createComment, editComment, deleteComment)
+- lib/features/comments/data/fake_comment_repository.dart
+- lib/features/comments/domain/comment.dart                          (copyWith clearBody)
+- lib/features/comments/presentation/providers/comment_providers.dart
+- lib/features/timeline/presentation/providers/feed_providers.dart   (+patchCommentCount)
+- lib/features/timeline/presentation/screens/post_detail_screen.dart
+- test/comment_actions_test.dart (baru), test/comments_test.dart (disesuaikan)
+
+CARA PASANG
+Timpa folder app/ ke app/ repo (seperti tahap sebelumnya), lalu:
+  flutter pub get
+  dart format .
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+CHECKLIST TES MANUAL
+1. Buka postingan mana saja -> ketik komentar -> tombol kirim aktif hanya jika ada isi.
+2. Kirim: komentar muncul, judul "Komentar N" bertambah 1; kembali ke Home, angka komentar di kartu ikut +1.
+3. Tekan "Balas" pada komentar -> muncul chip "Membalas @nama"; kirim -> balasan muncul di bawah induk
+   (lipatan terbuka otomatis). Tombol X pada chip membatalkan.
+4. Balas sampai tingkat 3 -> pada tingkat 3 tidak ada tombol Balas.
+5. Titik tiga di komentarmu: Ubah -> teks masuk ke kolom, simpan -> muncul "Diedit".
+   Tunggu >5 menit -> Ubah nonaktif.
+6. Hapus komentarmu yang tanpa balasan -> hilang, hitungan -1.
+   Hapus komentarmu yang sudah dibalas -> jadi "[komentar dihapus]", balasan tetap.
+7. Titik tiga di komentar orang lain -> Laporkan -> pilih alasan -> kirim -> snack "Terima kasih...".
+   Lapor dua kali -> pesan sudah pernah dilaporkan.
+8. Ketik >900 karakter -> penghitung muncul; batas 1000.
+9. Tutup postingan milikmu ("Tandai selesai") lalu buka detail -> "Komentar ditutup", tanpa tombol Balas.
+10. Komentar berisi link tetap bisa diketuk (ada konfirmasi).
+11. Komentar sendiri tidak bisa di-upvote/downvote (ada pesan).
+
+CATATAN UNTUK TIM BACKEND (A)
+- createComment: kode error invalid_body, max_depth, comments_closed, not_found, forbidden, rate_limit_exceeded.
+- editComment: edit_window (5 menit). deleteComment: soft delete bila punya anak.
+- Counter komentar sebaiknya diurus trigger DB, bukan klien.

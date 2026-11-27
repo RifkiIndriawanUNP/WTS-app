@@ -1,0 +1,61 @@
+TAHAP 4B — UBAH PROFIL, FOTO, PENGATURAN, HAPUS AKUN
+=====================================================
+
+ISI TAHAP INI
+- Edit Info -> layar "Ubah Profil": foto (kamera/galeri/hapus), username, program studi, bio.
+  * Username: 3-20 karakter huruf kecil/angka/_, dicek tersedia atau tidak, hanya bisa diganti
+    1x per 30 hari. Saat terkunci kolomnya nonaktif dan tertulis tanggal bisa diganti lagi.
+  * Bio maksimal 160 karakter; dikosongkan = dihapus. Program studi boleh dikosongkan.
+  * Tombol Simpan baru aktif bila ada perubahan yang valid. Setelah tersimpan, Home dan
+    daftar profil dimuat ulang agar nama/foto baru tampil.
+- Set Photo -> pilih foto lalu langsung tersimpan (atau hapus foto). Format JPG/PNG/WebP, maks 5 MB.
+- Settings -> layar "Pengaturan":
+  * Akun: email kampus (hanya terlihat olehmu), peran (bila moderator/admin), Ubah profil.
+  * Tentang: Syarat & Ketentuan, Aturan Komunitas, versi aplikasi.
+  * Sesi: Keluar (konfirmasi) dan Hapus akun.
+- Hapus akun: lembar penjelasan + harus mengetik @username untuk konfirmasi, lalu kembali ke
+  layar login. Mendaftar lagi dengan email yang sama = akun baru.
+
+FILE BARU / BERUBAH (semua di app/)
+Baru:
+- lib/features/profile/presentation/screens/edit_profile_screen.dart
+- lib/features/profile/presentation/screens/settings_screen.dart
+- lib/features/profile/presentation/widgets/avatar_picker.dart
+- test/profile_edit_test.dart
+Berubah:
+- lib/features/profile/presentation/screens/profile_screen.dart  (Set Photo, Edit Info, Settings tersambung)
+- test/profile_test.dart                                         (tes Edit Info/Settings disesuaikan)
+
+CARA PASANG (zip ini lengkap; timpa folder app/)
+  flutter pub get
+  dart format lib test
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+CHECKLIST TES MANUAL
+1. Profil -> Edit Info: kolom terisi data akunmu; Simpan abu-abu.
+2. Ubah bio -> Simpan aktif -> Simpan -> kembali ke profil, bio baru tampil + pesan "Profil diperbarui".
+3. Kosongkan bio -> Simpan -> baris Bio hilang dari profil.
+4. Ganti program studi lewat pilihan; "Kosongkan" menghapusnya (Jurusan "Belum diisi").
+5. Username: ketik "admin" -> "Username sudah dipakai"; ketik "ab" -> "Minimal 3 karakter";
+   username bebas -> "Tersedia" -> Simpan. Nama baru muncul di profil, Home, dan kartu postinganmu.
+6. Setelah ganti username, buka Edit Info lagi: kolom username terkunci dengan tanggal 30 hari lagi.
+7. Set Photo / kamera ikon pada Ubah Profil: pilih galeri -> foto tampil di avatar profil dan kartu.
+   Pilih file bukan JPG/PNG/WebP atau >5 MB -> ditolak dengan pesan.
+8. Hapus foto -> kembali ke inisial.
+9. Settings: email tampil; Syarat & Ketentuan dan Aturan Komunitas terbuka; Keluar -> konfirmasi -> login.
+10. Settings -> Hapus akun: tombol merah nonaktif sampai username diketik persis; Batal tidak menghapus apa pun.
+    Hapus -> layar login; masuk lagi dengan email sama -> diminta mengisi profil (akun baru).
+11. Akun admin@nusaputra.ac.id / mod@nusaputra.ac.id menampilkan baris Peran di Pengaturan.
+
+CATATAN UNTUK TIM BACKEND (A)
+- updateProfile = update tabel profiles; aturan 1x/30 hari, regex username, bio<=160 harus dijaga
+  server (trigger/RLS), bukan hanya di klien.
+- Foto: upload ke Storage bucket avatars dengan nama UUID acak (bukan nama file asli); kompres
+  dan batasi ukuran di klien (sudah 800px, kualitas 85); simpan URL publik di profiles.avatar_url.
+  Saat ganti/hapus foto, hapus berkas lama.
+- Hapus akun = RPC delete_my_account. Pastikan efeknya sama dengan teks di layar: profil, postingan,
+  komentar, chat ikut terhapus (atau dianonimkan - samakan teksnya), dan email boleh daftar ulang
+  sebagai akun baru. Setelah RPC, klien memanggil signOut.
+- Teks Syarat/Aturan masih draf (kLegal...); ganti dengan dokumen resmi sebelum rilis.

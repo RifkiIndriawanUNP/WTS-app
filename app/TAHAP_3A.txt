@@ -1,0 +1,61 @@
+WTS v2 — TAHAP 3A: BUAT & UBAH POSTINGAN
+========================================
+
+ISI TAHAP INI
+  Layar "Buat Postingan" (tombol + di Home) dan "Ubah Postingan" (menu titik tiga -> Ubah postingan).
+  - Penulis (avatar, @username, prodi, "Mahasiswa terverifikasi"); toggle Posting anonim
+  - Kategori (wajib, pilih 1-2 dari 11 tag backend)
+  - Judul (opsional, maks 120) + isi (maks 2000); digabung jadi satu caption (judul = baris pertama)
+  - Gambar maks 5 (galeri multi-pilih / kamera; JPG/PNG/WebP; GIF/video ditolak; diperkecil 1080px q70)
+  - Durasi tayang 1/3/7/14/30 hari (bawaan 30)
+  - Tag Kuesioner: tautan (http/https), batas waktu, estimasi menit -> jadi kartu "Isi Kuesioner" di feed
+  - Draf otomatis tersimpan di perangkat (teks, kategori, anonim, durasi, tautan); dipulihkan saat dibuka lagi
+  - Ubah postingan: hanya caption, hanya pemilik, hanya 24 jam pertama; tag/gambar/anonim/durasi terkunci; ditandai "Diedit"
+  - Validasi & kode error mengikuti RPC create_post (invalid_caption, tags_required, invalid_tag,
+    too_many_images, invalid_duration, invalid_link, rate_limit_exceeded) + batas 10 posting/hari
+  - Keluar saat sudah memilih gambar -> konfirmasi (gambar tidak ikut draf)
+
+FILE BARU/BERUBAH (timpa ke app/)
+  lib/features/timeline/domain/post.dart                          (+ PostDraft, PostRules.compose/validateCaption)
+  lib/features/timeline/data/post_repository.dart                 (+ createPost, updateCaption)
+  lib/features/timeline/data/fake_post_repository.dart            (+ createPost, updateCaption, postingan p15 milikmu 3 jam lalu)
+  lib/features/timeline/data/post_draft_store.dart                (BARU)
+  lib/features/timeline/timeline_routes.dart                      (BARU: /post/new, /post/edit untuk A)
+  lib/features/timeline/presentation/screens/post_form_screen.dart (BARU)
+  lib/features/timeline/presentation/screens/home_tab.dart        (tombol +, menu Ubah)
+  lib/features/timeline/presentation/widgets/post_menu_sheet.dart (+ Ubah postingan)
+  lib/features/timeline/presentation/providers/feed_providers.dart (+ createPost, updateCaption)
+  lib/features/auth/presentation/screens/profile_setup_screen.dart (perbaikan cek format foto di web)
+  test/post_form_test.dart                                        (BARU)
+
+PUBSPEC: tidak ada paket baru (image_picker & shared_preferences sudah ada dari Tahap 1).
+
+CARA COBA (dari app/)
+  dart format .
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+CHECKLIST YANG PERLU DIUJI MANUAL
+  [ ] Tombol + membuka layar Buat Postingan; tombol Posting abu-abu sampai ada isi DAN 1 kategori
+  [ ] Pilih 3 kategori -> hanya 2 terpilih, muncul pesan "Maksimal 2 tag"
+  [ ] Toggle anonim: nama di atas berubah jadi "Anonim"; setelah posting, kartu di feed bertuliskan Anonim
+  [ ] Judul + isi -> di feed judul tampil tebal; hanya isi (tanpa judul) -> tampil sebagai teks biasa
+  [ ] Pilih kategori Kuesioner -> muncul isian tautan; isi tautan salah (tanpa http) -> pesan merah, Posting nonaktif
+  [ ] Kuesioner dengan tautan + batas waktu + menit -> feed menampilkan kartu "Isi Kuesioner"
+  [ ] Tambah gambar (galeri, pilih >5 sekaligus -> hanya 5 diambil), hapus gambar dengan tombol x, GIF ditolak
+  [ ] Tekan Kembali saat ada gambar -> muncul konfirmasi "Keluar tanpa memposting?"
+  [ ] Tulis sesuatu, keluar TANPA posting, buka + lagi -> "Draf terakhirmu dipulihkan"; tombol Buang menghapusnya
+  [ ] Pilih durasi 1 hari -> postingan baru di feed menampilkan lencana "Hilang ... lagi"
+  [ ] Setelah Posting: kembali ke Home, daftar bergulir ke atas, postingan baru ada di atas, muncul pesan "Postingan terbit"
+  [ ] Menu titik tiga postingan "Ada yang mau bentuk tim lomba debat..." -> Ubah postingan -> ganti isi -> Simpan
+      -> kartu bertanda "Diedit"; tag/gambar tidak bisa diubah
+  [ ] Menu titik tiga postingan "Tips lulus praktikum..." (4 hari lalu) -> "Ubah postingan" nonaktif (24 jam)
+  [ ] Android sungguhan: izin kamera/galeri muncul dan gambar dari kamera bisa dipakai
+
+CATATAN
+  - Gambar belum diunggah ke Storage (itu tugas integrasi Supabase): saat ini hanya dipakai lokal.
+    Saat integrasi: kompres ke <=150 KB (flutter_image_compress), hapus EXIF, nama file UUID acak.
+  - Ubah durasi setelah terbit (perpendek/perpanjang) dan pulihkan postingan kedaluwarsa menunggu
+    RPC di backend (belum ada); tidak dibuat di tahap ini.
+  - Fake memakai jeda antar posting 0 detik supaya mudah diuji. Backend asli: 30 detik.

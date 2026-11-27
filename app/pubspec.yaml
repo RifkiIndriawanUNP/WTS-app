@@ -28,6 +28,10 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  google_fonts: ^6.3.3
+  shared_preferences: ^2.5.6 # hanya untuk mode palsu/lokal
+  image_picker: ^1.2.4 # foto profil
+  flutter_localizations: {sdk: flutter}
   flutter:
     sdk: flutter
 
@@ -70,6 +74,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

@@ -1,0 +1,58 @@
+WTS v2 — TAHAP 3B-1: DETAIL POSTINGAN + DAFTAR KOMENTAR
+=======================================================
+
+ISI TAHAP INI
+  Ketuk kartu / judul / tombol komentar di Home -> layar "Postingan":
+  - Postingan lengkap (isi tidak dipotong), galeri, kartu kuesioner, vote, simpan, bagikan,
+    menu titik tiga (ubah/selesai/hapus/laporkan, sama seperti di Home), penampil gambar penuh
+  - Daftar komentar berbentuk pohon, 3 tingkat (komentar -> balasan -> balasan)
+      * penulis (@username / "Anonim"), lencana OP (penulis postingan; anonim tetap "Anonim"),
+        waktu, "Diedit", tautan di komentar bisa diketuk (dengan peringatan buka tautan)
+      * upvote/downvote komentar (tidak bisa vote komentar sendiri), skor
+      * komentar dihapus tampil "[komentar dihapus]" (balasannya tetap terlihat)
+      * balasan lebih dari satu dilipat: "Lihat N balasan lainnya"
+      * urutan: Terbaik / Terbaru / Terlama
+  - Loading, kosong ("Belum ada komentar"), error + coba lagi; tarik untuk menyegarkan
+  - Postingan hilang/kedaluwarsa -> pesan "Postingan sudah tidak tersedia"
+  - Bilah "Tambah komentar..." di bawah (masih tampilan; ditulis di Tahap 3B-2);
+    postingan Selesai menampilkan "Komentar ditutup"
+  - Vote/simpan/hapus di detail ikut memperbarui daftar di Home
+
+BELUM (Tahap 3B-2): menulis komentar, membalas, ubah (5 menit), hapus, laporkan komentar, tautan komentar.
+
+FILE BARU/BERUBAH (timpa ke app/)
+  lib/features/comments/**                                    (BARU: domain, data palsu, provider, comment_tree)
+  lib/features/timeline/presentation/screens/post_detail_screen.dart   (BARU)
+  lib/features/timeline/presentation/screens/home_tab.dart             (buka detail; menu memakai post_actions)
+  lib/features/timeline/presentation/widgets/post_actions.dart         (BARU: menu titik tiga dipakai Home & Detail)
+  lib/features/timeline/presentation/widgets/post_card.dart            (+ mode expanded)
+  lib/features/timeline/presentation/providers/feed_providers.dart     (vote/simpan/selesai mengembalikan Post)
+  lib/features/timeline/data/post_repository.dart, fake_post_repository.dart   (+ getPost, applyCommentDelta)
+  lib/features/timeline/timeline_routes.dart                           (+ /posts/:id)
+  test/comments_test.dart                                              (BARU)
+
+PUBSPEC: tidak ada paket baru.
+
+CARA COBA (dari app/)
+  dart format .
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart
+
+CHECKLIST UJI MANUAL
+  [ ] Ketuk postingan di Home -> detail terbuka; tombol kembali kembali ke Home di posisi yang sama
+  [ ] Isi panjang tampil utuh (tanpa "Selengkapnya"); gambar bisa digeser & dibuka layar penuh
+  [ ] Postingan "Rekomendasi materi & kisi-kisi UTS..." (18 komentar): ada balasan bertingkat sampai 3 level,
+      garis vertikal di sisi kiri balasan, "Lihat 1 balasan lainnya" bisa dibuka
+  [ ] Ada komentar bertuliskan "[komentar dihapus]" dan lencana OP; di postingan anonim OP tertulis "Anonim"
+  [ ] Upvote/downvote komentar berubah warna & skor; tekan lagi membatalkan
+  [ ] Urutan komentar Terbaik/Terbaru/Terlama mengubah susunan komentar utama
+  [ ] Komentar berisi tautan (mis. di pengumuman UTS): ketuk -> muncul konfirmasi sebelum dibuka
+  [ ] Vote postingan di detail -> kembali ke Home, angka di kartu ikut berubah
+  [ ] Postingan milikmu ("Ada yang mau bentuk tim lomba debat...") -> titik tiga -> Hapus -> kembali ke Home & hilang dari daftar
+  [ ] Postingan milikmu -> Tandai selesai -> detail menampilkan "Selesai" & "Komentar ditutup"
+  [ ] Postingan yang sama dibuka dua kali: komentar tidak berubah-ubah (stabil)
+
+CATATAN
+  - Prodi penulis komentar tidak ditampilkan: view comments_public belum menyediakannya.
+  - Komentar contoh dibuat otomatis sesuai jumlah komentar tiap postingan (tidak tersimpan permanen).

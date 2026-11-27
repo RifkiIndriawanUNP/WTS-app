@@ -1,0 +1,49 @@
+WTS v2 — TAHAP 2A: LINIMASA (HOME) — tampilan feed
+===================================================
+
+FILE BARU/BERUBAH (timpa ke app/)
+  lib/features/timeline/domain/post.dart            model Post, PostTag, PostSort, PostRules
+  lib/features/timeline/data/post_repository.dart   kontrak data (abstract) + PostException
+  lib/features/timeline/data/fake_post_repository.dart   data contoh (14 postingan, 11 tag)
+  lib/features/timeline/presentation/providers/feed_providers.dart
+  lib/features/timeline/presentation/screens/home_tab.dart
+  lib/features/timeline/presentation/widgets/*      kartu, galeri, kuesioner, skeleton, state kosong/error
+  lib/features/timeline/preview/timeline_preview.dart
+  lib/features/auth/presentation/screens/splash_screen.dart       (revisi teks lebih kecil)
+  lib/features/auth/presentation/screens/profile_setup_screen.dart (revisi teks syarat & ketentuan)
+  lib/core/utils/format.dart                         (+ Fmt.ago)
+  lib/main_preview.dart                              (tab Home = HomeTab asli)
+  test/timeline_test.dart
+
+CARA COBA (dari app/)
+  dart format .
+  flutter analyze --fatal-infos
+  flutter test
+  flutter run -d edge -t lib/main_preview.dart            (login -> Home)
+  flutter run -d edge -t lib/features/timeline/preview/timeline_preview.dart   (Home langsung)
+
+YANG SUDAH JALAN
+  - Header (logo + avatar), kolom cari & tombol filter (tampilan; fungsi di Tahap 5)
+  - Chip tag: Semua + 11 tag dari backend (filter tag langsung bekerja)
+  - Kartu: avatar, @username/Anonim, prodi · waktu · Diedit, tag (maks 2), judul tebal + isi
+    (maks 6 baris + "Selengkapnya"), galeri 1/N + titik, kartu Kuesioner (Isi Kuesioner membuka
+    tautan dengan konfirmasi), lencana Pengumuman resmi / Selesai / "Hilang ... lagi" (<48 jam)
+  - Vote (optimistic, batal dengan menekan lagi, tidak bisa vote postingan sendiri), simpan
+  - Loading (skeleton), kosong, error + coba lagi, tarik untuk menyegarkan, scroll tak terbatas
+  - Pengumuman resmi selalu di atas
+
+BELUM (tahap berikut)
+  2B: urutan (5 pilihan), menu titik tiga, bagikan, penampil gambar penuh
+  3A: tombol "+" (buat postingan)   3B: detail & komentar   5: cari & filter
+
+CATATAN DESAIN vs KONTRAK BACKEND
+  - Desain menampilkan "Teknik Elektro '22" (angkatan). Kontrak tidak menyimpan angkatan, jadi hanya prodi.
+  - Desain punya tombol "+" di baris tag (tag buatan sendiri). Tag dikelola admin, jadi tidak ada.
+  - Desain punya judul + isi. Backend hanya punya `caption`. Judul = baris pertama caption
+    (judul + isi digabung dengan baris baru saat posting di Tahap 3A).
+  - Kartu dagangan (DIJUAL) di desain Home adalah milik Market (D), tidak dibuat di sini.
+  - Nama penulis memakai @username (tidak ada nama asli di profil).
+
+ISSUE `backend` UNTUK A
+  - View posts_public perlu kolom author_prodi (nama prodi penulis, null bila anonim) agar
+    baris "Teknik Informatika · 15 mnt lalu" bisa tampil.
